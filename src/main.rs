@@ -2,6 +2,7 @@
 // use winapi::*;
 
 mod win32helper;
+mod ntdll;
 
 fn main() {
     println!("Hello, world!");
