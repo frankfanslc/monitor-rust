@@ -15,4 +15,6 @@ fn main() {
     println!("pid   : {:?}", process_id);
     println!("hProc : {:?}", process_handle);
     println!("text  : {:?}", window_text);
+
+    win32helper::get_process_peb_address(process_handle);
 }
