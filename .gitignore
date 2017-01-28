@@ -1,0 +1,8 @@
+# rust cargo output folder
+target/
+
+# lock file
+Cargo.lock
+
+# VSCode editor configurations
+.vscode/
