@@ -11,6 +11,7 @@ pub fn NT_SUCCESS(status: ntdef::NTSTATUS) -> bool {
 #[repr(C)]
 pub enum PROCESSINFOCLASS {
     ProcessBasicInformation = 0,
+    ProcessWow64Information = 26,
 }
 
 // typedef NTSTATUS(NTAPI* type_NtQueryInformationProcess)(
@@ -51,6 +52,19 @@ pub struct PROCESS_ENVIRONMENT_BLOCK {
 }
 type PEB = PROCESS_ENVIRONMENT_BLOCK;
 
+type POINTER32 = u32;
+
+#[repr(C)]
+pub struct PROCESS_ENVIRONMENT_BLOCK_32 {
+    Reserved1: [u8; 2],
+    pub BeingDebugged: u8,
+    Reserved2: u8,
+    Reserved3: [POINTER32; 2],
+    pub Ldr: POINTER32,
+    pub ProcessParameters: POINTER32,
+}
+type PEB32 = PROCESS_ENVIRONMENT_BLOCK_32;
+
 // #[repr(C)]
 // pub struct UNICODE_STRING {
 //     Length: minwindef::USHORT,
@@ -59,10 +73,26 @@ type PEB = PROCESS_ENVIRONMENT_BLOCK;
 // }
 
 #[repr(C)]
+pub struct UNICODE_STRING_32 {
+    pub Length: minwindef::USHORT,
+    pub MaximumLength: minwindef::USHORT,
+    pub Buffer: POINTER32,
+}
+
+#[repr(C)]
 pub struct RTL_USER_PROCESS_PARAMETERS
 {
     Reserved1: [u8; 16],
     Reserved2: [winnt::PVOID; 10],
     pub ImagePathName: UNICODE_STRING,
     pub CommandLine: UNICODE_STRING,
+}
+
+#[repr(C)]
+pub struct RTL_USER_PROCESS_PARAMETERS_32
+{
+    Reserved1: [u8; 16],
+    Reserved2: [POINTER32; 10],
+    pub ImagePathName: UNICODE_STRING_32,
+    pub CommandLine: UNICODE_STRING_32,
 }
