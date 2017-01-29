@@ -35,13 +35,13 @@ pub fn get_window_text(hwnd: windef::HWND) -> String {
             return String::new();
         }
         buffer.set_len(char_count);
-    }        
+    }
     String::from_utf16_lossy(&buffer)
 }
 
 // pub unsafe extern "system" fn ReadProcessMemory(hProcess: HANDLE, lpBaseAddress: LPCVOID, lpBuffer: LPVOID, nSize: SIZE_T, lpNumberOfBytesRead: *mut SIZE_T) -> BOOL
 pub fn read_process_memory_raw (
-            process_handle: winnt::HANDLE, 
+            process_handle: winnt::HANDLE,
             base_address: minwindef::LPCVOID,
             buffer: minwindef::LPVOID,
             size: usize)
@@ -55,7 +55,7 @@ pub fn read_process_memory_raw (
 }
 
 pub fn read_process_memory<T> (
-            process_handle: winnt::HANDLE, 
+            process_handle: winnt::HANDLE,
             base_address: minwindef::LPCVOID,
             buffer: *mut T)
             -> bool {
@@ -67,4 +67,26 @@ pub fn is_wow64_process(process_handle: HANDLE) -> bool {
     let mut result: minwindef::BOOL = minwindef::FALSE;
     unsafe { kernel32::IsWow64Process(process_handle, &mut result); }
     result != minwindef::FALSE
+}
+
+// pub unsafe extern "system" fn IsImmersiveProcess(hProcess: HANDLE) -> BOOL
+pub fn is_immersive_process(process_handle: HANDLE) -> bool {
+    unsafe {
+        user32::IsImmersiveProcess(process_handle) != minwindef::FALSE
+    }
+}
+
+// pub unsafe extern "system" fn CloseHandle(hObject: HANDLE) -> BOOL
+pub fn close_handle(handle: HANDLE) {
+    unsafe {
+        kernel32::CloseHandle(handle);
+    }
+}
+
+// type WNDENUMPROC = Option<unsafe  extern "system" fn(HWND, LPARAM) -> BOOL>;
+// pub unsafe extern "system" fn EnumChildWindows(hwndParent: HWND, lpEnumFunc: WNDENUMPROC, lpParam: LPARAM) -> BOOL
+pub fn enum_child_windows(parent_window: windef::HWND, callback: winuser::WNDENUMPROC, lparam: minwindef::LPARAM) -> bool {
+    unsafe {
+        user32::EnumChildWindows(parent_window, callback, lparam) != minwindef::FALSE
+    }
 }
