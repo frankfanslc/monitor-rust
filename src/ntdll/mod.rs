@@ -2,6 +2,7 @@
 
 extern crate winapi;
 use self::winapi::*;
+use std::mem;
 
 pub fn NT_SUCCESS(status: ntdef::NTSTATUS) -> bool {
     status >= 0
@@ -30,6 +31,21 @@ extern "system" {
         ProcessInformationLength: minwindef::ULONG,
         ReturnLength: &mut minwindef::ULONG)
         -> ntdef::NTSTATUS;
+}
+
+// pub unsafe extern "system" fn NtQueryInformationProcess(ProcessHandle: HANDLE, ProcessInformationClass: PROCESSINFOCLASS,
+//      ProcessInformation: PVOID, ProcessInformationLength: ULONG, ReturnLength: &mut ULONG) -> NTSTATUS;
+pub fn nt_query_information_process<T> (
+            process_handle: winnt::HANDLE, 
+            information_class: PROCESSINFOCLASS,
+            buffer: *mut T)
+            -> bool {
+    let mut return_length: minwindef::ULONG = 0;
+    unsafe {
+        let status = NtQueryInformationProcess(process_handle, information_class,
+                buffer as minwindef::LPVOID, mem::size_of::<T>() as minwindef::ULONG, &mut return_length);
+        NT_SUCCESS(status)
+    }
 }
 
 #[repr(C)]
