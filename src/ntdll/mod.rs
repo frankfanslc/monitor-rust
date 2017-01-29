@@ -36,7 +36,7 @@ extern "system" {
 // pub unsafe extern "system" fn NtQueryInformationProcess(ProcessHandle: HANDLE, ProcessInformationClass: PROCESSINFOCLASS,
 //      ProcessInformation: PVOID, ProcessInformationLength: ULONG, ReturnLength: &mut ULONG) -> NTSTATUS;
 pub fn nt_query_information_process<T> (
-            process_handle: winnt::HANDLE, 
+            process_handle: winnt::HANDLE,
             information_class: PROCESSINFOCLASS,
             buffer: *mut T)
             -> bool {
