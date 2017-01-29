@@ -21,6 +21,6 @@ fn main() {
 
     println!("hwnd  : {:?}", window_handle);
     println!("pid   : {:?}", process_id);
-    println!("text  : {}",   window_text);
-    println!("cmdln : {}",   command_line);
+    println!("text  : {}", window_text);
+    println!("cmdln : {}", command_line);
 }

@@ -11,8 +11,9 @@ use super::*;
 
 pub fn get_process_peb_address(process_handle: winnt::HANDLE) -> winnt::PVOID {
     let mut basic_info: ntdll::PROCESS_BASIC_INFORMATION = unsafe { mem::zeroed() };
-    if ntdll::nt_query_information_process::<ntdll::PROCESS_BASIC_INFORMATION>(
-                process_handle, ntdll::PROCESSINFOCLASS::ProcessBasicInformation, &mut basic_info) {
+    if ntdll::nt_query_information_process::<ntdll::PROCESS_BASIC_INFORMATION>(process_handle,
+                                                                               ntdll::PROCESSINFOCLASS::ProcessBasicInformation,
+                                                                               &mut basic_info) {
         basic_info.PebBaseAddress
     } else {
         ptr::null_mut()
@@ -21,8 +22,9 @@ pub fn get_process_peb_address(process_handle: winnt::HANDLE) -> winnt::PVOID {
 
 pub fn get_process_peb_address_wow32(process_handle: winnt::HANDLE) -> winnt::PVOID {
     let mut peb_address: winnt::PVOID = ptr::null_mut();
-    if ntdll::nt_query_information_process::<winnt::PVOID>(
-                process_handle, ntdll::PROCESSINFOCLASS::ProcessWow64Information, &mut peb_address) {
+    if ntdll::nt_query_information_process::<winnt::PVOID>(process_handle,
+                                                           ntdll::PROCESSINFOCLASS::ProcessWow64Information,
+                                                           &mut peb_address) {
         peb_address
     } else {
         ptr::null_mut()
@@ -42,15 +44,21 @@ pub fn get_process_command_line(process_handle: winnt::HANDLE) -> String {
     }
 
     let mut process_parameters: ntdll::RTL_USER_PROCESS_PARAMETERS = unsafe { mem::zeroed() };
-    if !read_process_memory::<ntdll::RTL_USER_PROCESS_PARAMETERS>(process_handle, peb.ProcessParameters, &mut process_parameters) {
+    if !read_process_memory::<ntdll::RTL_USER_PROCESS_PARAMETERS>(process_handle,
+                                                                  peb.ProcessParameters,
+                                                                  &mut process_parameters) {
         return empty;
     }
 
     let char_count = process_parameters.CommandLine.Length as usize;
-    let mut buffer : Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
-    unsafe { buffer.set_len(char_count); }
-    if !read_process_memory_raw(process_handle, process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
-                buffer.as_mut_ptr() as minwindef::LPVOID, char_count * 2) {
+    let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
+    unsafe {
+        buffer.set_len(char_count);
+    }
+    if !read_process_memory_raw(process_handle,
+                                process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
+                                buffer.as_mut_ptr() as minwindef::LPVOID,
+                                char_count * 2) {
         return empty;
     }
     String::from_utf16_lossy(&buffer)
@@ -66,15 +74,21 @@ pub fn get_process_command_line_32(process_handle: winnt::HANDLE) -> String {
     }
 
     let mut process_parameters: ntdll::RTL_USER_PROCESS_PARAMETERS_32 = unsafe { mem::zeroed() };
-    if !read_process_memory::<ntdll::RTL_USER_PROCESS_PARAMETERS_32>(process_handle, peb.ProcessParameters as minwindef::LPCVOID, &mut process_parameters) {
+    if !read_process_memory::<ntdll::RTL_USER_PROCESS_PARAMETERS_32>(process_handle,
+                                                                     peb.ProcessParameters as minwindef::LPCVOID,
+                                                                     &mut process_parameters) {
         return empty;
     }
 
     let char_count = process_parameters.CommandLine.Length as usize;
-    let mut buffer : Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
-    unsafe { buffer.set_len(char_count); }
-    if !read_process_memory_raw(process_handle, process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
-                buffer.as_mut_ptr() as minwindef::LPVOID, char_count * 2) {
+    let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
+    unsafe {
+        buffer.set_len(char_count);
+    }
+    if !read_process_memory_raw(process_handle,
+                                process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
+                                buffer.as_mut_ptr() as minwindef::LPVOID,
+                                char_count * 2) {
         return empty;
     }
     String::from_utf16_lossy(&buffer)
@@ -105,10 +119,13 @@ pub fn get_universal_app(window_handle: &mut windef::HWND, process_id: &mut minw
     parameter.process_id = *process_id;
 
     let address: *mut EnumUniversaApplParameter = &mut parameter;
-    enum_child_windows(*window_handle, Some(enum_universal_app_callback), address as minwindef::LPARAM);
+    enum_child_windows(*window_handle,
+                       Some(enum_universal_app_callback),
+                       address as minwindef::LPARAM);
 
     if parameter.child_process == 0 {
-        panic!("Error trying to find the universal app for host window {:?}", get_window_text(*window_handle));
+        panic!("Error trying to find the universal app for host window {:?}",
+               get_window_text(*window_handle));
     }
 
     *window_handle = parameter.child_window;

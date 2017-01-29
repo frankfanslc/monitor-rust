@@ -24,26 +24,24 @@ pub enum PROCESSINFOCLASS {
 
 #[link(name = "ntdll")]
 extern "system" {
-    pub fn NtQueryInformationProcess(
-        ProcessHandle: winnt::HANDLE,
-        ProcessInformationClass: PROCESSINFOCLASS,
-        ProcessInformation: winnt::PVOID,
-        ProcessInformationLength: minwindef::ULONG,
-        ReturnLength: &mut minwindef::ULONG)
-        -> ntdef::NTSTATUS;
+    pub fn NtQueryInformationProcess(ProcessHandle: winnt::HANDLE,
+                                     ProcessInformationClass: PROCESSINFOCLASS,
+                                     ProcessInformation: winnt::PVOID,
+                                     ProcessInformationLength: minwindef::ULONG,
+                                     ReturnLength: &mut minwindef::ULONG)
+                                     -> ntdef::NTSTATUS;
 }
 
 // pub unsafe extern "system" fn NtQueryInformationProcess(ProcessHandle: HANDLE, ProcessInformationClass: PROCESSINFOCLASS,
 //      ProcessInformation: PVOID, ProcessInformationLength: ULONG, ReturnLength: &mut ULONG) -> NTSTATUS;
-pub fn nt_query_information_process<T> (
-            process_handle: winnt::HANDLE,
-            information_class: PROCESSINFOCLASS,
-            buffer: *mut T)
-            -> bool {
+pub fn nt_query_information_process<T>(process_handle: winnt::HANDLE, information_class: PROCESSINFOCLASS, buffer: *mut T) -> bool {
     let mut return_length: minwindef::ULONG = 0;
     unsafe {
-        let status = NtQueryInformationProcess(process_handle, information_class,
-                buffer as minwindef::LPVOID, mem::size_of::<T>() as minwindef::ULONG, &mut return_length);
+        let status = NtQueryInformationProcess(process_handle,
+                                               information_class,
+                                               buffer as minwindef::LPVOID,
+                                               mem::size_of::<T>() as minwindef::ULONG,
+                                               &mut return_length);
         NT_SUCCESS(status)
     }
 }
@@ -96,8 +94,7 @@ pub struct UNICODE_STRING_32 {
 }
 
 #[repr(C)]
-pub struct RTL_USER_PROCESS_PARAMETERS
-{
+pub struct RTL_USER_PROCESS_PARAMETERS {
     Reserved1: [u8; 16],
     Reserved2: [winnt::PVOID; 10],
     pub ImagePathName: UNICODE_STRING,
@@ -105,8 +102,7 @@ pub struct RTL_USER_PROCESS_PARAMETERS
 }
 
 #[repr(C)]
-pub struct RTL_USER_PROCESS_PARAMETERS_32
-{
+pub struct RTL_USER_PROCESS_PARAMETERS_32 {
     Reserved1: [u8; 16],
     Reserved2: [POINTER32; 10],
     pub ImagePathName: UNICODE_STRING_32,
