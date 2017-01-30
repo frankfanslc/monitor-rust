@@ -50,7 +50,8 @@ pub fn get_process_command_line(process_handle: winnt::HANDLE) -> String {
         return empty;
     }
 
-    let char_count = process_parameters.CommandLine.Length as usize;
+    let byte_count = process_parameters.CommandLine.Length as usize;
+    let char_count = byte_count / 2;
     let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
     unsafe {
         buffer.set_len(char_count);
@@ -58,7 +59,7 @@ pub fn get_process_command_line(process_handle: winnt::HANDLE) -> String {
     if !read_process_memory_raw(process_handle,
                                 process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
                                 buffer.as_mut_ptr() as minwindef::LPVOID,
-                                char_count * 2) {
+                                byte_count) {
         return empty;
     }
     String::from_utf16_lossy(&buffer)
@@ -80,7 +81,8 @@ pub fn get_process_command_line_32(process_handle: winnt::HANDLE) -> String {
         return empty;
     }
 
-    let char_count = process_parameters.CommandLine.Length as usize;
+    let byte_count = process_parameters.CommandLine.Length as usize;
+    let char_count = byte_count / 2;
     let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(char_count);
     unsafe {
         buffer.set_len(char_count);
@@ -88,7 +90,7 @@ pub fn get_process_command_line_32(process_handle: winnt::HANDLE) -> String {
     if !read_process_memory_raw(process_handle,
                                 process_parameters.CommandLine.Buffer as minwindef::LPCVOID,
                                 buffer.as_mut_ptr() as minwindef::LPVOID,
-                                char_count * 2) {
+                                byte_count) {
         return empty;
     }
     String::from_utf16_lossy(&buffer)
