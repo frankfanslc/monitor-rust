@@ -106,24 +106,23 @@ pub fn register_class(wnd_class: &winuser::WNDCLASSW) -> bool {
     unsafe { user32::RegisterClassW(wnd_class) != 0 }
 }
 
-// pub unsafe extern "system" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID) -> HWND
+// pub unsafe extern "system" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int,
+//                                               hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID) -> HWND
 pub fn create_window(class_name: winnt::LPCWSTR, window_name: winnt::LPCWSTR, style: minwindef::DWORD, instance_handle: minwindef::HINSTANCE) -> windef::HWND {
-    let hwnd: windef::HWND;
     unsafe {
-        hwnd = user32::CreateWindowExW(0,
-                                       class_name,
-                                       window_name,
-                                       style,
-                                       winuser::CW_USEDEFAULT,
-                                       0,
-                                       winuser::CW_USEDEFAULT,
-                                       0,
-                                       ptr::null_mut(),
-                                       ptr::null_mut(),
-                                       instance_handle,
-                                       ptr::null_mut());
+        user32::CreateWindowExW(0,
+                                class_name,
+                                window_name,
+                                style,
+                                winuser::CW_USEDEFAULT,
+                                0,
+                                winuser::CW_USEDEFAULT,
+                                0,
+                                ptr::null_mut(),
+                                ptr::null_mut(),
+                                instance_handle,
+                                ptr::null_mut())
     }
-    hwnd
 }
 
 // pub unsafe extern "system" fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE

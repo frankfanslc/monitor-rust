@@ -14,15 +14,13 @@ pub fn winmain() {
             winuser::WM_DESTROY => {
                 win32helper::post_quit_message(0);
                 0
-            },
-            _ => {
-                win32helper::def_window_proc(hwnd, msg, wparam, lparam)
             }
+            _ => win32helper::def_window_proc(hwnd, msg, wparam, lparam),
         }
     }
 
-    let window_class_name = win32helper::to_utf16("{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}");
-    let window_title = win32helper::to_utf16("Monitor");
+    let window_class_name = win32helper::to_wide_chars("{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}");
+    let window_title = win32helper::to_wide_chars("Monitor");
 
     let mut wnd_class: winuser::WNDCLASSW = unsafe { mem::zeroed() };
     wnd_class.lpfnWndProc = Some(wnd_proc);
@@ -35,9 +33,9 @@ pub fn winmain() {
     }
 
     let hwnd = win32helper::create_window(wnd_class.lpszClassName,
-                             window_title.as_ptr(),
-                             winuser::WS_OVERLAPPEDWINDOW | winuser::WS_VISIBLE,
-                             instance_handle);
+                                          window_title.as_ptr(),
+                                          winuser::WS_OVERLAPPEDWINDOW | winuser::WS_VISIBLE,
+                                          instance_handle);
     if hwnd.is_null() {
         return;
     }
