@@ -1,9 +1,19 @@
+// The code need be build with:
+//
+//     cargo rustc -- -Clink-args="/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+//
+
 use std::{thread, time};
 
 mod win32helper;
 mod ntdll;
 
+use self::mainframe::*;
+mod mainframe;
+
 fn main() {
+    winmain();
+
     thread::sleep(time::Duration::from_secs(3));
 
     let mut window_handle = win32helper::get_foreground_window();
