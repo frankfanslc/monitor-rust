@@ -1,21 +1,16 @@
-// The code need be build with:
-//
-//     cargo rustc -- -Clink-args="/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
-//
-
-use std::{thread, time};
-
 mod win32helper;
 mod ntdll;
 
 use self::mainframe::*;
 mod mainframe;
 
+pub const CHECK_INTERNVAL_IN_SECONDS: u32 = 5;
+
 fn main() {
     winmain();
+}
 
-    thread::sleep(time::Duration::from_secs(3));
-
+fn get_foreground_app() {
     let mut window_handle = win32helper::get_foreground_window();
     let window_text = win32helper::get_window_text(window_handle);
     let mut process_id = win32helper::get_window_process_id(window_handle);
@@ -38,4 +33,5 @@ fn main() {
     println!("pid   : {:?}", process_id);
     println!("text  : {}", window_text);
     println!("cmdln : {}", command_line);
+    println!();
 }

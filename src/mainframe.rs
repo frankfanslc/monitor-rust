@@ -2,6 +2,7 @@ extern crate winapi;
 
 use self::winapi::*;
 use super::win32helper;
+use std::ptr;
 
 pub fn winmain() {
 
@@ -13,6 +14,10 @@ pub fn winmain() {
             }
             _ => win32helper::def_window_proc(hwnd, msg, wparam, lparam),
         }
+    }
+
+    if win32helper::is_app_already_runniing("Local\\{AB2F0A5E-FAA2-4664-B3C2-25D3984F0A20}") {
+        return;
     }
 
     let instance_handle = win32helper::get_current_instance();
@@ -33,5 +38,17 @@ pub fn winmain() {
     win32helper::set_window_long_ptr(hwnd, 0, hwnd as basetsd::LONG_PTR);
     win32helper::get_window_long_ptr(hwnd, 0);
 
+    let console_result = win32helper::alloc_console();
+    println!("alloc_console: {:?}", console_result);
+
+    let timer = win32helper::Timer::new(super::CHECK_INTERNVAL_IN_SECONDS,
+                                        timer_routine,
+                                        ptr::null_mut() as win32helper::TimerContext);
+    timer.spawn_wait();
+
     win32helper::message_loop();
+}
+
+fn timer_routine(_: win32helper::TimerContext) {
+    super::get_foreground_app();
 }

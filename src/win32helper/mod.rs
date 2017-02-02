@@ -9,6 +9,9 @@ use std::ptr;
 pub use self::extra::*;
 mod extra;
 
+pub use self::timer::*;
+mod timer;
+
 // pub unsafe extern "system" fn GetForegroundWindow() -> HWND
 pub fn get_foreground_window() -> windef::HWND {
     unsafe { user32::GetForegroundWindow() }
@@ -24,7 +27,7 @@ pub fn get_window_process_id(hwnd: windef::HWND) -> minwindef::DWORD {
 }
 
 // pub unsafe extern "system" fn OpenProcess(dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) -> HANDLE
-pub fn open_process(process_id: DWORD) -> winnt::HANDLE {
+pub fn open_process(process_id: minwindef::DWORD) -> winnt::HANDLE {
     unsafe {
         kernel32::OpenProcess(winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_VM_READ,
                               minwindef::FALSE,
@@ -108,7 +111,7 @@ pub const POINTER_SIZE: usize = 8;
 
 // the first few slots in WNDCLASS.cbWndExtra is reserved for win32helper
 const WINDOW_EXTRA_SLOT_WND_PROC: c_int = 0;
-const WINDOW_EXTRA_SLOT_USER: c_int = POINTER_SIZE as c_int; // int64 on amd64. I cannot use "mem::size_of::<basetsd::LONG_PTR>() as c_int" here
+const WINDOW_EXTRA_SLOT_USER: c_int = POINTER_SIZE as c_int;
 
 fn get_window_extra(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PTR {
     unsafe { user32::GetWindowLongPtrW(hwnd, index) }
@@ -224,4 +227,77 @@ pub fn message_loop() {
             user32::DispatchMessageW(&msg);
         }
     }
+}
+
+// pub unsafe extern "system" fn AllocConsole() -> BOOL
+pub fn alloc_console() -> bool {
+    unsafe { kernel32::AllocConsole() != minwindef::FALSE }
+}
+
+fn to_winapi_bool(x: bool) -> minwindef::BOOL {
+    if x { minwindef::TRUE } else { minwindef::FALSE }
+}
+
+// pub unsafe extern "system" fn CreateWaitableTimerW(lpTimerAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR) -> HANDLE
+pub fn create_waitable_timer(manual_reset: bool) -> winnt::HANDLE {
+    unsafe { kernel32::CreateWaitableTimerW(ptr::null_mut(), to_winapi_bool(manual_reset), ptr::null()) }
+}
+
+// type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
+// pub unsafe extern "system" fn SetWaitableTimer(hTimer: HANDLE, lpDueTime: *const LARGE_INTEGER, lPeriod: LONG,
+//                                                pfnCompletionRoutine: PTIMERAPCROUTINE, lpArgToCompletionRoutine: LPVOID, fResume: BOOL) -> BOOL
+pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
+                          due_time: *const winnt::LARGE_INTEGER,
+                          period: winnt::LONG,
+                          callback: synchapi::PTIMERAPCROUTINE,
+                          callback_context: minwindef::LPVOID,
+                          resume_system: bool)
+                          -> bool {
+    unsafe {
+        kernel32::SetWaitableTimer(timer_handle,
+                                   due_time,
+                                   period,
+                                   callback,
+                                   callback_context,
+                                   to_winapi_bool(resume_system)) != minwindef::FALSE
+    }
+}
+
+// pub unsafe extern "system" fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR) -> HANDLE
+pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
+    unsafe {
+        kernel32::CreateEventW(ptr::null_mut(),
+                               to_winapi_bool(manual_reset),
+                               to_winapi_bool(initial_state),
+                               ptr::null())
+    }
+}
+
+// pub unsafe extern "system" fn WaitForSingleObjectEx(hHandle: HANDLE, dwMilliseconds: DWORD, bAlertable: BOOL) -> DWORD
+pub fn wait_for_single_object_ex(handle: winnt::HANDLE, milliseconds: minwindef::DWORD) -> bool {
+    unsafe { kernel32::WaitForSingleObjectEx(handle, milliseconds, minwindef::TRUE) == winbase::WAIT_OBJECT_0 }
+}
+
+// pub unsafe extern "system" fn CreateMutexW(lpMutexAttributes: LPSECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR) -> HANDLE
+pub fn create_mutex(initial_owner: bool, name: &str) -> winnt::HANDLE {
+    let name_vec = to_wide_chars(name);
+    unsafe {
+        kernel32::CreateMutexW(ptr::null_mut(),
+                               to_winapi_bool(initial_owner),
+                               name_vec.as_ptr())
+    }
+}
+
+// pub unsafe extern "system" fn GetLastError() -> DWORD
+pub fn get_last_error() -> minwindef::DWORD {
+    unsafe { kernel32::GetLastError() }
+}
+
+pub fn is_app_already_runniing(name: &str) -> bool {
+    let handle = create_mutex(false, name);
+
+    // - if the function fails, the return value is NULL.
+    // - if the named mutex already exists before this function call, the return value is a non-null handle to the existing object,
+    //   GetLastError returns ERROR_ALREADY_EXISTS, bInitialOwner is ignored.
+    (handle == ptr::null_mut() || get_last_error() == winerror::ERROR_ALREADY_EXISTS)
 }
