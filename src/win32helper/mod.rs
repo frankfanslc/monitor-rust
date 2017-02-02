@@ -1,3 +1,5 @@
+#![macro_use]
+
 extern crate winapi;
 extern crate user32;
 extern crate kernel32;
@@ -135,8 +137,16 @@ pub fn get_window_long_ptr(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PT
 }
 
 // pub unsafe extern "system" fn SetWindowLongPtrW(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR
-pub fn set_window_long_ptr(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
-    set_window_extra(hwnd, window_extra_real_index(index), value)
+pub fn set_window_long_ptr(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> bool {
+    set_last_error(0);
+    let result = set_window_extra(hwnd, window_extra_real_index(index), value);
+    if result == 0 {
+        let last_error = get_last_error();
+        if last_error != 0 {
+            return false;
+        }
+    }
+    return true;
 }
 
 // fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT
@@ -263,6 +273,11 @@ pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
     }
 }
 
+// pub unsafe extern "system" fn CancelWaitableTimer(hTimer: HANDLE) -> BOOL
+pub fn cancel_waitable_timer(timer_handle: winnt::HANDLE) -> bool {
+    unsafe { kernel32::CancelWaitableTimer(timer_handle) != minwindef::FALSE }
+}
+
 // pub unsafe extern "system" fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR) -> HANDLE
 pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
     unsafe {
@@ -271,6 +286,11 @@ pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
                                to_winapi_bool(initial_state),
                                ptr::null())
     }
+}
+
+// pub unsafe extern "system" fn SetEvent(hEvent: HANDLE) -> BOOL
+pub fn set_event(event_handle: winnt::HANDLE) {
+    unsafe { kernel32::SetEvent(event_handle) };
 }
 
 // pub unsafe extern "system" fn WaitForSingleObjectEx(hHandle: HANDLE, dwMilliseconds: DWORD, bAlertable: BOOL) -> DWORD
@@ -293,6 +313,11 @@ pub fn get_last_error() -> minwindef::DWORD {
     unsafe { kernel32::GetLastError() }
 }
 
+// pub unsafe extern "system" fn SetLastError(dwErrCode: DWORD)
+pub fn set_last_error(value: minwindef::DWORD) {
+    unsafe { kernel32::SetLastError(value) };
+}
+
 pub fn is_app_already_runniing(name: &str) -> bool {
     let handle = create_mutex(false, name);
 
@@ -301,3 +326,75 @@ pub fn is_app_already_runniing(name: &str) -> bool {
     //   GetLastError returns ERROR_ALREADY_EXISTS, bInitialOwner is ignored.
     (handle == ptr::null_mut() || get_last_error() == winerror::ERROR_ALREADY_EXISTS)
 }
+
+// wparam for WM_POWERBROADCAST
+pub const PBT_POWERSETTINGCHANGE: minwindef::WPARAM = 0x0218;
+
+#[repr(C)]
+pub struct POWERBROADCAST_SETTING {
+    pub power_setting: guiddef::GUID,
+    pub length: minwindef::DWORD,
+    pub data: minwindef::DWORD, // [u8; *],
+}
+
+// wparam for WM_WTSSESSION_CHANGE
+pub const WTS_SESSION_LOCK: minwindef::WPARAM = 7;
+pub const WTS_SESSION_UNLOCK: minwindef::WPARAM = 8;
+
+macro_rules! DEFINE_GUID {
+    (
+        $name:ident, $l:expr, $w1:expr, $w2:expr,
+        $b1:expr, $b2:expr, $b3:expr, $b4:expr, $b5:expr, $b6:expr, $b7:expr, $b8:expr
+    ) => {
+        pub const $name: GUID = GUID {
+            Data1: $l,
+            Data2: $w1,
+            Data3: $w2,
+            Data4: [$b1, $b2, $b3, $b4, $b5, $b6, $b7, $b8],
+        };
+    }
+}
+
+pub fn is_equal_guid(x: &GUID, y: &GUID) -> bool {
+    x.Data1 == y.Data1 && x.Data2 == y.Data2 && x.Data3 == y.Data3 && x.Data4 == y.Data4
+}
+
+// HPOWERNOTIFY WINAPI RegisterPowerSettingNotification(
+//   _In_ HANDLE  hRecipient,
+//   _In_ LPCGUID PowerSettingGuid,
+//   _In_ DWORD   Flags
+// );
+
+pub type HPOWERNOTIFY = winnt::HANDLE;
+
+#[allow(non_snake_case)]
+#[link(name = "user32")]
+extern "system" {
+    pub fn RegisterPowerSettingNotification(hRecipient: winnt::HANDLE, PowerSettingGuid: &GUID, Flags: minwindef::DWORD) -> HPOWERNOTIFY;
+}
+
+pub fn register_power_setting_notification(recipient: winnt::HANDLE, setting: &GUID, flags: minwindef::DWORD) -> HPOWERNOTIFY {
+    unsafe { RegisterPowerSettingNotification(recipient, setting, flags) }
+}
+
+// flags for register_power_setting_notification
+pub const DEVICE_NOTIFY_WINDOW_HANDLE: minwindef::DWORD = 0;
+// pub const DEVICE_NOTIFY_SERVICE_HANDLE: minwindef::DWORD = 1;
+
+// BOOL WTSRegisterSessionNotification(
+//   _In_ HWND  hWnd,
+//   _In_ DWORD dwFlags
+// );
+#[allow(non_snake_case)]
+#[link(name = "wtsapi32")]
+extern "system" {
+    pub fn WTSRegisterSessionNotification(hWnd: windef::HWND, dwFlags: minwindef::DWORD) -> minwindef::BOOL;
+}
+
+pub fn wts_register_session_notification(hwnd: windef::HWND, flags: minwindef::DWORD) -> bool {
+    unsafe { WTSRegisterSessionNotification(hwnd, flags) != minwindef::FALSE }
+}
+
+// flags for wts_register_session_notification
+pub const NOTIFY_FOR_THIS_SESSION: minwindef::DWORD = 0;
+// pub const NOTIFY_FOR_ALL_SESSIONS: minwindef::DWORD = 1;

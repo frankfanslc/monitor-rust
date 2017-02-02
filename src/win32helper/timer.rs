@@ -59,8 +59,16 @@ impl Timer {
         });
     }
 
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
     fn seconds_to_millisecond(n: u32) -> u32 {
         n * 1000
+    }
+
+    pub fn start(&self) {
+        set_event(self.timer_handle);
     }
 
     fn start_for_real(&mut self) {
@@ -75,6 +83,14 @@ impl Timer {
                               resume_system) {
             self.running = true;
         }
+    }
+
+    pub fn stop(&mut self) {
+        if !cancel_waitable_timer(self.timer_handle) {
+            return;
+        }
+
+        self.running = true;
     }
 
     // type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
