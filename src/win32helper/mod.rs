@@ -398,3 +398,12 @@ pub fn wts_register_session_notification(hwnd: windef::HWND, flags: minwindef::D
 // flags for wts_register_session_notification
 pub const NOTIFY_FOR_THIS_SESSION: minwindef::DWORD = 0;
 // pub const NOTIFY_FOR_ALL_SESSIONS: minwindef::DWORD = 1;
+
+// pub unsafe extern "system" fn GetLocalTime(lpSystemTime: LPSYSTEMTIME)
+pub fn get_local_time() -> minwinbase::SYSTEMTIME {
+    unsafe {
+        let mut now: minwinbase::SYSTEMTIME = mem::zeroed();
+        kernel32::GetLocalTime(&mut now);
+        return now;
+    }
+}

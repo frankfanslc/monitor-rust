@@ -126,8 +126,9 @@ pub fn get_universal_app(window_handle: &mut windef::HWND, process_id: &mut minw
                        address as minwindef::LPARAM);
 
     if parameter.child_process == 0 {
-        panic!("Error trying to find the universal app for host window {:?}",
-               get_window_text(*window_handle));
+        println!("Error trying to find the universal app for host window {:?}",
+                 get_window_text(*window_handle));
+        return;
     }
 
     *window_handle = parameter.child_window;

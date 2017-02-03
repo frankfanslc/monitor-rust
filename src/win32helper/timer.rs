@@ -68,7 +68,7 @@ impl Timer {
     }
 
     pub fn start(&self) {
-        set_event(self.timer_handle);
+        set_event(self.start_event);
     }
 
     fn start_for_real(&mut self) {
@@ -82,6 +82,10 @@ impl Timer {
                               raw_ptr as minwindef::LPVOID,
                               resume_system) {
             self.running = true;
+
+            Timer::output_timestamp();
+            println!("Timer started");
+            println!();
         }
     }
 
@@ -89,13 +93,21 @@ impl Timer {
         if !cancel_waitable_timer(self.timer_handle) {
             return;
         }
+        self.running = false;
 
-        self.running = true;
+        Timer::output_timestamp();
+        println!("Timer stopped");
+        println!();
     }
 
     // type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
     unsafe extern "system" fn apc_routine(context: minwindef::LPVOID, _: minwindef::DWORD, _: minwindef::DWORD) {
         let this_ptr: *mut Timer = context as *mut Timer;
         ((*this_ptr).routine)((*this_ptr).context);
+    }
+
+    pub fn output_timestamp() {
+        let now = get_local_time();
+        print!("{}:{}:{} - ", now.wHour, now.wMinute, now.wSecond);
     }
 }
