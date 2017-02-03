@@ -66,10 +66,7 @@ impl win32helper::Timer {
             return;
         }
 
-        DEFINE_GUID!(GUID_SESSION_USER_PRESENCE,  0x3c0f4548, 0xc03f, 0x4c4d, 0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76);
-        DEFINE_GUID!(GUID_SESSION_DISPLAY_STATUS, 0x2b84c20e, 0xad23, 0x4ddf, 0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5);
-
-        let power_settings = [GUID_SESSION_USER_PRESENCE, GUID_SESSION_DISPLAY_STATUS];
+        let power_settings = [win32helper::GUID_SESSION_USER_PRESENCE, win32helper::GUID_SESSION_DISPLAY_STATUS];
         for setting in power_settings.iter() {
             if win32helper::register_power_setting_notification(hwnd as winnt::HANDLE,
                                                                 setting,
@@ -111,10 +108,8 @@ impl win32helper::Timer {
     }
 
     pub fn power_event(&mut self, setting: &win32helper::POWERBROADCAST_SETTING) {
-        DEFINE_GUID!(GUID_SESSION_USER_PRESENCE,  0x3c0f4548, 0xc03f, 0x4c4d, 0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76);
-        DEFINE_GUID!(GUID_SESSION_DISPLAY_STATUS, 0x2b84c20e, 0xad23, 0x4ddf, 0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5);
-
-        if win32helper::is_equal_guid(&setting.power_setting, &GUID_SESSION_USER_PRESENCE) {
+        if win32helper::is_equal_guid(&setting.power_setting,
+                                      &win32helper::GUID_SESSION_USER_PRESENCE) {
             let power_user_present = 0;
             let power_user_inactive = 2;
 
@@ -125,7 +120,8 @@ impl win32helper::Timer {
                 self.start();
             }
 
-        } else if win32helper::is_equal_guid(&setting.power_setting, &GUID_SESSION_DISPLAY_STATUS) {
+        } else if win32helper::is_equal_guid(&setting.power_setting,
+                                             &win32helper::GUID_SESSION_DISPLAY_STATUS) {
             let display_off = 0;
             let display_on = 1;
 

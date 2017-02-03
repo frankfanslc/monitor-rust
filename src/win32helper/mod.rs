@@ -1,5 +1,3 @@
-#![macro_use]
-
 extern crate winapi;
 extern crate user32;
 extern crate kernel32;
@@ -341,19 +339,21 @@ pub struct POWERBROADCAST_SETTING {
 pub const WTS_SESSION_LOCK: minwindef::WPARAM = 7;
 pub const WTS_SESSION_UNLOCK: minwindef::WPARAM = 8;
 
-macro_rules! DEFINE_GUID {
-    (
-        $name:ident, $l:expr, $w1:expr, $w2:expr,
-        $b1:expr, $b2:expr, $b3:expr, $b4:expr, $b5:expr, $b6:expr, $b7:expr, $b8:expr
-    ) => {
-        pub const $name: GUID = GUID {
-            Data1: $l,
-            Data2: $w1,
-            Data3: $w2,
-            Data4: [$b1, $b2, $b3, $b4, $b5, $b6, $b7, $b8],
-        };
-    }
-}
+// DEFINE_GUID!(GUID_SESSION_USER_PRESENCE,  0x3c0f4548, 0xc03f, 0x4c4d, 0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76);
+pub const GUID_SESSION_USER_PRESENCE: GUID = GUID {
+    Data1: 0x3c0f4548,
+    Data2: 0xc03f,
+    Data3: 0x4c4d,
+    Data4: [0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76],
+};
+
+// DEFINE_GUID!(GUID_SESSION_DISPLAY_STATUS, 0x2b84c20e, 0xad23, 0x4ddf, 0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5);
+pub const GUID_SESSION_DISPLAY_STATUS: GUID = GUID {
+    Data1: 0x2b84c20e,
+    Data2: 0xad23,
+    Data3: 0x4ddf,
+    Data4: [0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5],
+};
 
 pub fn is_equal_guid(x: &GUID, y: &GUID) -> bool {
     x.Data1 == y.Data1 && x.Data2 == y.Data2 && x.Data3 == y.Data3 && x.Data4 == y.Data4
