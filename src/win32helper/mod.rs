@@ -12,6 +12,11 @@ mod extra;
 pub use self::timer::*;
 mod timer;
 
+#[cfg(target_pointer_width = "32")]
+pub const POINTER_SIZE: usize = 4;
+#[cfg(target_pointer_width = "64")]
+pub const POINTER_SIZE: usize = 8;
+
 // pub unsafe extern "system" fn GetForegroundWindow() -> HWND
 pub fn get_foreground_window() -> windef::HWND {
     unsafe { user32::GetForegroundWindow() }
@@ -104,20 +109,15 @@ pub fn to_wide_chars(s: &str) -> Vec<u16> {
     v
 }
 
-#[cfg(target_pointer_width = "32")]
-pub const POINTER_SIZE: usize = 4;
-#[cfg(target_pointer_width = "64")]
-pub const POINTER_SIZE: usize = 8;
-
 // the first few slots in WNDCLASS.cbWndExtra is reserved for win32helper
-const WINDOW_EXTRA_SLOT_WND_PROC: c_int = 0;
-const WINDOW_EXTRA_SLOT_USER: c_int = POINTER_SIZE as c_int;
+pub const WINDOW_EXTRA_SLOT_WND_PROC: c_int = 0;
+pub const WINDOW_EXTRA_SLOT_USER: c_int = POINTER_SIZE as c_int;
 
-fn get_window_extra(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PTR {
+pub fn get_window_extra(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PTR {
     unsafe { user32::GetWindowLongPtrW(hwnd, index) }
 }
 
-fn set_window_extra(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
+pub fn set_window_extra(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
     unsafe { user32::SetWindowLongPtrW(hwnd, index, value) }
 }
 
@@ -145,66 +145,6 @@ pub fn set_window_long_ptr(hwnd: windef::HWND, index: c_int, value: basetsd::LON
         }
     }
     return true;
-}
-
-// fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT
-pub type WndProc = fn(hwnd: windef::HWND,
-                      msg: minwindef::UINT,
-                      wparam: minwindef::WPARAM,
-                      lparam: LPARAM) -> minwindef::LRESULT;
-
-// pub unsafe extern "system" fn RegisterClassW(lpWndClass: *const WNDCLASSW) -> ATOM
-// pub unsafe extern "system" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int,
-//                                               hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID) -> HWND
-pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, style: minwindef::DWORD, instance_handle: minwindef::HINSTANCE, wnd_extra: c_int) -> windef::HWND {
-
-    unsafe extern "system" fn static_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT {
-        if msg == winuser::WM_NCCREATE {
-            let create_structure = lparam as *const winuser::CREATESTRUCTW;
-            let user_wnd_proc = (*create_structure).lpCreateParams;
-            set_window_extra(hwnd,
-                             WINDOW_EXTRA_SLOT_WND_PROC,
-                             user_wnd_proc as basetsd::LONG_PTR); // lparam was passed from CreateWindow() call, as wnd_proc
-        }
-
-        let window_extra = get_window_extra(hwnd, WINDOW_EXTRA_SLOT_WND_PROC);
-        if window_extra == 0 {
-            return def_window_proc(hwnd, msg, wparam, lparam);
-        }
-
-        // let user_wnd_proc = window_extra as minwindef::LPCVOID as WndProc;
-        let user_wnd_proc: WndProc = mem::transmute(window_extra);
-        user_wnd_proc(hwnd, msg, wparam, lparam)
-    }
-
-    let class_name_vec = to_wide_chars(class_name);
-    let window_name_vec = to_wide_chars(window_name);
-
-    let mut wnd_class: winuser::WNDCLASSW = unsafe { mem::zeroed() };
-    wnd_class.lpfnWndProc = Some(static_wnd_proc);
-    wnd_class.hInstance = instance_handle;
-    wnd_class.hbrBackground = winuser::COLOR_BACKGROUND as windef::HBRUSH;
-    wnd_class.lpszClassName = class_name_vec.as_ptr();
-    wnd_class.cbWndExtra = wnd_extra + WINDOW_EXTRA_SLOT_USER;
-
-    unsafe {
-        if user32::RegisterClassW(&wnd_class) == 0 {
-            return ptr::null_mut();
-        }
-
-        user32::CreateWindowExW(0,
-                                class_name_vec.as_ptr(),
-                                window_name_vec.as_ptr(),
-                                style,
-                                winuser::CW_USEDEFAULT,
-                                winuser::CW_USEDEFAULT,
-                                winuser::CW_USEDEFAULT,
-                                winuser::CW_USEDEFAULT,
-                                ptr::null_mut(), // hWndParent
-                                ptr::null_mut(), // hMenu
-                                instance_handle,
-                                wnd_proc as LPVOID) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
-    }
 }
 
 // pub unsafe extern "system" fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE
