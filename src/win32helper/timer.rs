@@ -78,7 +78,7 @@ impl PeriodicTimer {
                               resume_system) {
             self.running = true;
 
-            PeriodicTimer::output_timestamp();
+            output_timestamp();
             println!("Timer started");
             println!();
         }
@@ -90,7 +90,7 @@ impl PeriodicTimer {
         }
         self.running = false;
 
-        PeriodicTimer::output_timestamp();
+        output_timestamp();
         println!("Timer stopped");
         println!();
     }
@@ -99,10 +99,5 @@ impl PeriodicTimer {
     unsafe extern "system" fn apc_routine(context: minwindef::LPVOID, _: minwindef::DWORD, _: minwindef::DWORD) {
         let this_ptr: *mut PeriodicTimer = context as *mut PeriodicTimer;
         ((*this_ptr).routine)((*this_ptr).context);
-    }
-
-    pub fn output_timestamp() {
-        let now = get_local_time();
-        print!("{}:{}:{} - ", now.wHour, now.wMinute, now.wSecond);
     }
 }

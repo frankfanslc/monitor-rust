@@ -341,3 +341,8 @@ pub fn get_local_time() -> minwinbase::SYSTEMTIME {
         return now;
     }
 }
+
+pub fn output_timestamp() {
+    let now = get_local_time();
+    print!("{}:{}:{} - ", now.wHour, now.wMinute, now.wSecond);
+}
