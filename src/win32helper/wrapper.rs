@@ -6,15 +6,6 @@ use self::winapi::*;
 use std::mem;
 use std::ptr;
 
-pub use self::extra::*;
-mod extra;
-
-pub use self::timer::*;
-mod timer;
-
-pub use self::ntdll::*;
-mod ntdll;
-
 #[cfg(target_pointer_width = "32")]
 pub const POINTER_SIZE: usize = 4;
 #[cfg(target_pointer_width = "64")]
