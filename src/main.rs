@@ -1,5 +1,4 @@
 mod win32helper;
-mod ntdll;
 
 use self::mainframe::*;
 mod mainframe;

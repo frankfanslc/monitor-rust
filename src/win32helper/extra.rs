@@ -3,11 +3,11 @@ extern crate user32;
 extern crate kernel32;
 
 use self::winapi::*;
-use ntdll;
 use std::mem;
 use std::ptr;
 
 use super::*;
+use super::ntdll;
 
 pub fn get_process_peb_address(process_handle: winnt::HANDLE) -> winnt::PVOID {
     let mut basic_info: ntdll::PROCESS_BASIC_INFORMATION = unsafe { mem::zeroed() };
