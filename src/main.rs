@@ -3,10 +3,10 @@ mod win32helper;
 use self::mainframe::*;
 mod mainframe;
 
-pub const CHECK_INTERNVAL_IN_SECONDS: u32 = 5;
+const CHECK_INTERNVAL_IN_SECONDS: u32 = 5;
 
 fn main() {
-    winmain();
+    setup_periodic_callback(CHECK_INTERNVAL_IN_SECONDS, get_foreground_app);
 }
 
 fn get_foreground_app() {

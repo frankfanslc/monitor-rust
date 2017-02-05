@@ -5,7 +5,9 @@ use super::win32helper;
 use std::ptr;
 use std::mem;
 
-pub fn winmain() {
+type SimpleTimerCallback = fn();
+
+pub fn setup_periodic_callback(period_in_second: u32, callback: SimpleTimerCallback) {
 
     fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
 
@@ -42,9 +44,9 @@ pub fn winmain() {
     let console_result = win32helper::alloc_console();
     println!("alloc_console: {:?}", console_result);
 
-    let mut timer = win32helper::PeriodicTimer::new(super::CHECK_INTERNVAL_IN_SECONDS,
+    let mut timer = win32helper::PeriodicTimer::new(period_in_second,
                                                     timer_routine,
-                                                    ptr::null_mut() as win32helper::TimerContext);
+                                                    callback as win32helper::TimerContext);
 
     timer.attach_to_window(hwnd);
     timer.start_wait();
@@ -52,8 +54,9 @@ pub fn winmain() {
     win32helper::message_loop();
 }
 
-fn timer_routine(_: win32helper::TimerContext) {
-    super::get_foreground_app();
+fn timer_routine(context: win32helper::TimerContext) {
+    let callback: SimpleTimerCallback = unsafe { mem::transmute(context) };
+    callback();
 }
 
 impl win32helper::PeriodicTimer {
