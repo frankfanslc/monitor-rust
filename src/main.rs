@@ -29,7 +29,7 @@ fn get_foreground_app() {
 
     let command_line = win32helper::get_process_command_line(process_handle);
 
-    win32helper::Timer::output_timestamp();
+    win32helper::PeriodicTimer::output_timestamp();
     println!();
     println!("hwnd  : {:?}", window_handle);
     println!("pid   : {:?}", process_id);

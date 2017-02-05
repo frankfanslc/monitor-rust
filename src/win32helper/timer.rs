@@ -12,7 +12,7 @@ pub type TimerContext = minwindef::LPCVOID;
 pub type TimerRoutine = fn(context: TimerContext);
 
 #[derive(Debug)]
-pub struct Timer {
+pub struct PeriodicTimer {
     period_in_second: u32,
     routine: TimerRoutine,
     context: TimerContext,
@@ -21,15 +21,15 @@ pub struct Timer {
     running: bool,
 }
 
-impl Timer {
-    pub fn new(period_in_second: u32, routine: TimerRoutine, context: TimerContext) -> Timer {
+impl PeriodicTimer {
+    pub fn new(period_in_second: u32, routine: TimerRoutine, context: TimerContext) -> PeriodicTimer {
 
         let manual_reset = true;
         let auto_reset = false;
         let initial_state_signalled = true;
         // let initial_state_not_signalled = false;
 
-        let timer = Timer {
+        let timer = PeriodicTimer {
             period_in_second: period_in_second,
             routine: routine,
             context: context,
@@ -37,20 +37,15 @@ impl Timer {
             start_event: create_event(auto_reset, initial_state_signalled),
             running: false,
         };
-
-        // Split the constructor into two stages, new() and spawn_wait(), because when passing raw pointer
-        // of self to another thread, I noticed that the storage for local variable (timer = Timer{})
-        // is different from the one that was eventually returned (timer = Timer::new()). The local one
-        // is short lived, and should not be passed around for future usage.
         timer
     }
 
-    pub fn spawn_wait(&self) {
-        // Cannot pass Timer structure to thread::spawn directly, as it will fail with:
+    pub fn start_wait(&self) {
+        // Cannot pass PeriodicTimer structure to thread::spawn directly, as it will fail with:
         // error[E0277] the trait `std::marker::Sync` is not implemented for `*const std::os::raw::c_void`
         let raw_ptr: usize = unsafe { mem::transmute(self) };
         thread::spawn(move || unsafe {
-            let this_ptr: *mut Timer = mem::transmute(raw_ptr);
+            let this_ptr: *mut PeriodicTimer = mem::transmute(raw_ptr);
             loop {
                 if wait_for_single_object_ex((*this_ptr).start_event, winbase::INFINITE) {
                     (*this_ptr).start_for_real();
@@ -74,16 +69,16 @@ impl Timer {
     fn start_for_real(&mut self) {
         let due_time: winnt::LARGE_INTEGER = -1; // trigger immediately
         let resume_system = false;
-        let raw_ptr: *mut Timer = self;
+        let raw_ptr: *mut PeriodicTimer = self;
         if set_waitable_timer(self.timer_handle,
                               &due_time,
-                              Timer::seconds_to_millisecond(self.period_in_second) as winnt::LONG,
-                              Some(Timer::apc_routine),
+                              PeriodicTimer::seconds_to_millisecond(self.period_in_second) as winnt::LONG,
+                              Some(PeriodicTimer::apc_routine),
                               raw_ptr as minwindef::LPVOID,
                               resume_system) {
             self.running = true;
 
-            Timer::output_timestamp();
+            PeriodicTimer::output_timestamp();
             println!("Timer started");
             println!();
         }
@@ -95,14 +90,14 @@ impl Timer {
         }
         self.running = false;
 
-        Timer::output_timestamp();
+        PeriodicTimer::output_timestamp();
         println!("Timer stopped");
         println!();
     }
 
     // type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
     unsafe extern "system" fn apc_routine(context: minwindef::LPVOID, _: minwindef::DWORD, _: minwindef::DWORD) {
-        let this_ptr: *mut Timer = context as *mut Timer;
+        let this_ptr: *mut PeriodicTimer = context as *mut PeriodicTimer;
         ((*this_ptr).routine)((*this_ptr).context);
     }
 

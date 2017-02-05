@@ -7,9 +7,9 @@ use std::mem;
 
 pub fn winmain() {
 
-    fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT {
+    fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
 
-        win32helper::Timer::raw_wnd_proc(hwnd, msg, wparam, lparam);
+        win32helper::PeriodicTimer::raw_wnd_proc(hwnd, msg, wparam, lparam);
 
         match msg {
             winuser::WM_DESTROY => {
@@ -27,7 +27,7 @@ pub fn winmain() {
     let instance_handle = win32helper::get_current_instance();
     let class_name = "{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}";
     let window_name = "Monitor";
-    let wnd_extra: c_int = win32helper::POINTER_SIZE as c_int; // store pointer to win32helper::Timer
+    let wnd_extra: c_int = win32helper::POINTER_SIZE as c_int; // store pointer to win32helper::PeriodicTimer
 
     let hwnd = win32helper::create_window(class_name,
                                           window_name,
@@ -42,12 +42,12 @@ pub fn winmain() {
     let console_result = win32helper::alloc_console();
     println!("alloc_console: {:?}", console_result);
 
-    let mut timer = win32helper::Timer::new(super::CHECK_INTERNVAL_IN_SECONDS,
-                                            timer_routine,
-                                            ptr::null_mut() as win32helper::TimerContext);
+    let mut timer = win32helper::PeriodicTimer::new(super::CHECK_INTERNVAL_IN_SECONDS,
+                                                    timer_routine,
+                                                    ptr::null_mut() as win32helper::TimerContext);
 
-    timer.register_for_hwnd(hwnd);
-    timer.spawn_wait();
+    timer.attach_to_window(hwnd);
+    timer.start_wait();
 
     win32helper::message_loop();
 }
@@ -56,11 +56,11 @@ fn timer_routine(_: win32helper::TimerContext) {
     super::get_foreground_app();
 }
 
-impl win32helper::Timer {
-    pub fn register_for_hwnd(&mut self, hwnd: windef::HWND) {
+impl win32helper::PeriodicTimer {
+    pub fn attach_to_window(&mut self, hwnd: windef::HWND) {
         if !win32helper::set_window_long_ptr(hwnd,
                                              0,
-                                             self as *mut win32helper::Timer as basetsd::LONG_PTR) {
+                                             self as *mut win32helper::PeriodicTimer as basetsd::LONG_PTR) {
             println!("set_window_long_ptr failed with {:?}",
                      win32helper::get_last_error());
             return;
@@ -84,15 +84,15 @@ impl win32helper::Timer {
         }
     }
 
-    pub fn raw_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) {
+    pub fn raw_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) {
         let raw_ptr = win32helper::get_window_long_ptr(hwnd, 0);
         if raw_ptr != 0 {
-            let timer = unsafe { &mut *(raw_ptr as *mut win32helper::Timer) };
+            let timer = unsafe { &mut *(raw_ptr as *mut win32helper::PeriodicTimer) };
             timer.wnd_proc(hwnd, msg, wparam, lparam);
         }
     }
 
-    pub fn wnd_proc(&mut self, _: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) {
+    fn wnd_proc(&mut self, _: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) {
         match msg {
             winuser::WM_POWERBROADCAST => {
                 if wparam == win32helper::PBT_POWERSETTINGCHANGE && lparam != 0 {
@@ -107,7 +107,7 @@ impl win32helper::Timer {
         }
     }
 
-    pub fn power_event(&mut self, setting: &win32helper::POWERBROADCAST_SETTING) {
+    fn power_event(&mut self, setting: &win32helper::POWERBROADCAST_SETTING) {
         if win32helper::is_equal_guid(&setting.power_setting,
                                       &win32helper::GUID_SESSION_USER_PRESENCE) {
             let power_user_present = 0;
@@ -134,7 +134,7 @@ impl win32helper::Timer {
         }
     }
 
-    pub fn logon_event(&mut self, data: minwindef::WPARAM) {
+    fn logon_event(&mut self, data: minwindef::WPARAM) {
         if self.is_running() && data == win32helper::WTS_SESSION_LOCK {
             self.stop();
         } else if !self.is_running() && data == win32helper::WTS_SESSION_UNLOCK {
