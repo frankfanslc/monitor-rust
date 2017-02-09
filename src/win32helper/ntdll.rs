@@ -64,7 +64,6 @@ pub struct PROCESS_ENVIRONMENT_BLOCK {
     pub Ldr: winnt::PVOID,
     pub ProcessParameters: winnt::PVOID,
 }
-type PEB = PROCESS_ENVIRONMENT_BLOCK;
 
 type POINTER32 = u32;
 
@@ -77,7 +76,6 @@ pub struct PROCESS_ENVIRONMENT_BLOCK_32 {
     pub Ldr: POINTER32,
     pub ProcessParameters: POINTER32,
 }
-type PEB32 = PROCESS_ENVIRONMENT_BLOCK_32;
 
 // #[repr(C)]
 // pub struct UNICODE_STRING {
