@@ -1,5 +1,31 @@
 extern crate winapi;
 
+pub trait Log {
+    fn log(&self, window_tile: String, command_line: String);
+}
+
+pub fn log(window_tile: String, command_line: String) {
+    let logger = unsafe { &*LOGGER };
+    logger.log(window_tile, command_line);
+}
+
+pub fn set_logger<M>(make_logger: M)
+    where M: FnOnce() -> Box<Log>
+{
+    unsafe {
+        LOGGER = mem::transmute(make_logger());
+    }
+}
+
+static mut LOGGER: *const Log = &NopLogger;
+
+struct NopLogger;
+impl Log for NopLogger {
+    fn log(&self, _: String, _: String) {}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
 use self::winapi::*;
 use super::win32helper;
 use std::fs::File;
@@ -21,6 +47,15 @@ pub struct Logger {
     count: u32,
     last_entry: Entry,
     entries: Vec<Entry>,
+}
+
+impl Log for Logger {
+    fn log(&self, window_tile: String, command_line: String) {
+        unsafe {
+            let logger: &mut Logger = mem::transmute(self as *const Logger);
+            logger.add_entry(window_tile, command_line);
+        }
+    }
 }
 
 impl Logger {
