@@ -4,7 +4,6 @@ mod mainframe;
 mod logger;
 use self::mainframe::*;
 use self::logger::*;
-use std::ptr;
 
 const CHECK_INTERNVAL_IN_SECONDS: u32 = 10;
 const FLUSH_INTERVAL_IN_MINUTES: u32 = 15;
@@ -13,13 +12,7 @@ fn main() {
     let logger = Logger::new(CHECK_INTERNVAL_IN_SECONDS, FLUSH_INTERVAL_IN_MINUTES);
     set_logger(|| Box::new(logger));
 
-    setup_periodic_callback(CHECK_INTERNVAL_IN_SECONDS,
-                            timer_callback,
-                            ptr::null_mut() as win32helper::TimerContext);
-}
-
-fn timer_callback(_: win32helper::TimerContext) {
-    get_foreground_app();
+    setup_periodic_callback(CHECK_INTERNVAL_IN_SECONDS, get_foreground_app);
 }
 
 fn get_foreground_app() {

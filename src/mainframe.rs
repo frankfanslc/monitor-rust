@@ -5,7 +5,9 @@ use super::win32helper;
 use std::ptr;
 use std::mem;
 
-pub fn setup_periodic_callback(period_in_second: u32, callback: win32helper::TimerRoutine, context: win32helper::TimerContext) {
+type SimpleTimerCallback = fn();
+
+pub fn setup_periodic_callback(period_in_second: u32, callback: SimpleTimerCallback) {
 
     if win32helper::is_app_already_runniing("Local\\{AB2F0A5E-FAA2-4664-B3C2-25D3984F0A20}") {
         return;
@@ -14,13 +16,20 @@ pub fn setup_periodic_callback(period_in_second: u32, callback: win32helper::Tim
     let console_result = win32helper::alloc_console();
     println!("alloc_console: {:?}", console_result);
 
-    let mut timer = win32helper::PeriodicTimer::new(period_in_second, callback, context);
+    let mut timer = win32helper::PeriodicTimer::new(period_in_second,
+                                                    timer_routine,
+                                                    callback as win32helper::TimerContext);
 
     let hwnd = timer.create_window();
     timer.register_notification(hwnd);
     timer.start_wait();
 
     win32helper::message_loop();
+}
+
+fn timer_routine(context: win32helper::TimerContext) {
+    let callback: SimpleTimerCallback = unsafe { mem::transmute(context) };
+    callback();
 }
 
 impl win32helper::PeriodicTimer {
