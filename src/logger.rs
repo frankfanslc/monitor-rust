@@ -65,7 +65,7 @@ impl Logger {
         use std::fs::OpenOptions;
         use std::os::windows::fs::OpenOptionsExt;
 
-        let file_name = env::var("LOCALAPPDATA").unwrap() + "\\findapp-monitor.log";
+        let file_name = env::var("LOCALAPPDATA").unwrap() + "\\record-usage.csv";
 
         let last_entry = Entry {
             timestamp: win32helper::get_local_time(),
