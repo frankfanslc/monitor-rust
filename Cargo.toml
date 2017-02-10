@@ -1,5 +1,5 @@
 [package]
-name = "monitor"
+name = "record-usage"
 version = "0.1.0"
 authors = ["Wei Mao"]
 
