@@ -1,12 +1,12 @@
 extern crate winapi;
 
 pub trait Log {
-    fn log(&self, window_tile: String, command_line: String);
+    fn log(&self, window_title: String, command_line: String);
 }
 
-pub fn log(window_tile: String, command_line: String) {
+pub fn log(window_title: String, command_line: String) {
     let logger = unsafe { &*LOGGER };
-    logger.log(window_tile, command_line);
+    logger.log(window_title, command_line);
 }
 
 pub fn set_logger<M>(make_logger: M)
@@ -35,7 +35,7 @@ use std::mem;
 struct Entry {
     timestamp: minwinbase::SYSTEMTIME,
     duration_in_seconds: u32,
-    window_tile: String,
+    window_title: String,
     command_line: String,
 }
 
@@ -50,10 +50,10 @@ pub struct Logger {
 }
 
 impl Log for Logger {
-    fn log(&self, window_tile: String, command_line: String) {
+    fn log(&self, window_title: String, command_line: String) {
         unsafe {
             let logger: &mut Logger = mem::transmute(self as *const Logger);
-            logger.add_entry(window_tile, command_line);
+            logger.add_entry(window_title, command_line);
         }
     }
 }
@@ -70,7 +70,7 @@ impl Logger {
         let last_entry = Entry {
             timestamp: win32helper::get_local_time(),
             duration_in_seconds: 0,
-            window_tile: String::new(),
+            window_title: String::new(),
             command_line: String::new(),
         };
 
@@ -90,7 +90,7 @@ impl Logger {
         }
     }
 
-    pub fn add_entry(&mut self, window_tile: String, command_line: String) {
+    pub fn add_entry(&mut self, window_title: String, command_line: String) {
         self.count += 1;
         if self.count >= self.max_entries_before_flush {
             self.flush();
@@ -98,14 +98,14 @@ impl Logger {
         let entry = Entry {
             timestamp: win32helper::get_local_time(),
             duration_in_seconds: self.interval_in_seconds,
-            window_tile: window_tile.to_owned(),
+            window_title: window_title.to_owned(),
             command_line: command_line.to_owned(),
         };
         if self.last_entry.duration_in_seconds == 0 {
             self.last_entry = entry;
             return;
         }
-        if self.last_entry.window_tile == window_tile && self.last_entry.command_line == command_line {
+        if self.last_entry.window_title == window_title && self.last_entry.command_line == command_line {
             self.last_entry.duration_in_seconds += self.interval_in_seconds;
             return;
         }
@@ -118,7 +118,7 @@ impl Logger {
         let entry = Entry {
             timestamp: win32helper::get_local_time(),
             duration_in_seconds: 0,
-            window_tile: String::new(),
+            window_title: String::new(),
             command_line: String::new(),
         };
         self.entries.push(mem::replace(&mut self.last_entry, entry));
@@ -135,7 +135,7 @@ impl Logger {
                      now.wSecond,
                      entry.duration_in_seconds,
                      entry.command_line,
-                     entry.window_tile)
+                     entry.window_title)
                 .unwrap();
         }
 
