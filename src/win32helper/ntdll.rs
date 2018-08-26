@@ -1,7 +1,13 @@
 #![allow(non_snake_case)]
 
 extern crate winapi;
-use self::winapi::*;
+
+use self::winapi::{
+        shared::minwindef,
+        shared::basetsd,
+        shared::ntdef,
+        um::winnt};
+
 use std::mem;
 
 pub fn NT_SUCCESS(status: ntdef::NTSTATUS) -> bool {
@@ -95,8 +101,8 @@ pub struct UNICODE_STRING_32 {
 pub struct RTL_USER_PROCESS_PARAMETERS {
     Reserved1: [u8; 16],
     Reserved2: [winnt::PVOID; 10],
-    pub ImagePathName: UNICODE_STRING,
-    pub CommandLine: UNICODE_STRING,
+    pub ImagePathName: ntdef::UNICODE_STRING,
+    pub CommandLine: ntdef::UNICODE_STRING,
 }
 
 #[repr(C)]

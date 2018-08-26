@@ -1,8 +1,10 @@
 extern crate winapi;
-extern crate user32;
-extern crate kernel32;
 
-use self::winapi::*;
+use self::winapi::{
+        shared::minwindef,
+        um::winnt,
+        um::winbase};
+
 use std::mem;
 use std::thread;
 

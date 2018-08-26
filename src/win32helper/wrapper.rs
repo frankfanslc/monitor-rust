@@ -1,8 +1,30 @@
 extern crate winapi;
-extern crate user32;
-extern crate kernel32;
 
-use self::winapi::*;
+use self::winapi::{
+        ctypes,
+
+        shared::basetsd,
+        shared::guiddef,
+        shared::minwindef,
+        shared::windef,
+        shared::winerror,
+
+        um::minwinbase,
+        um::winbase,
+        um::winnt,
+        um::winuser,
+        um::wow64apiset,
+        
+        um::consoleapi,
+        um::errhandlingapi,
+        um::handleapi,
+        um::libloaderapi,
+        um::memoryapi,
+        um::processthreadsapi,
+        um::synchapi,
+        um::sysinfoapi,
+        };
+
 use std::mem;
 use std::ptr;
 
@@ -13,14 +35,14 @@ pub const POINTER_SIZE: usize = 8;
 
 // pub unsafe extern "system" fn GetForegroundWindow() -> HWND
 pub fn get_foreground_window() -> windef::HWND {
-    unsafe { user32::GetForegroundWindow() }
+    unsafe { winuser::GetForegroundWindow() }
 }
 
 // pub unsafe extern "system" fn GetWindowThreadProcessId(hWnd: HWND, lpdwProcessId: LPDWORD) -> DWORD
 pub fn get_window_process_id(hwnd: windef::HWND) -> minwindef::DWORD {
     let mut process_id: minwindef::DWORD = 0;
     unsafe {
-        user32::GetWindowThreadProcessId(hwnd, &mut process_id);
+        winuser::GetWindowThreadProcessId(hwnd, &mut process_id);
     }
     process_id
 }
@@ -28,9 +50,9 @@ pub fn get_window_process_id(hwnd: windef::HWND) -> minwindef::DWORD {
 // pub unsafe extern "system" fn OpenProcess(dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) -> HANDLE
 pub fn open_process(process_id: minwindef::DWORD) -> winnt::HANDLE {
     unsafe {
-        kernel32::OpenProcess(winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_VM_READ,
-                              minwindef::FALSE,
-                              process_id)
+        processthreadsapi::OpenProcess(winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_VM_READ,
+                                       minwindef::FALSE,
+                                       process_id)
     }
 }
 
@@ -39,9 +61,9 @@ pub fn get_window_text(hwnd: windef::HWND) -> String {
     let max_char_count: usize = 300;
     let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(max_char_count);
     unsafe {
-        let char_count = user32::GetWindowTextW(hwnd,
+        let char_count = winuser::GetWindowTextW(hwnd,
                                                 buffer.as_mut_ptr() as winnt::LPWSTR,
-                                                max_char_count as c_int) as usize;
+                                                max_char_count as ctypes::c_int) as usize;
         if char_count == 0 {
             return String::new();
         }
@@ -53,8 +75,8 @@ pub fn get_window_text(hwnd: windef::HWND) -> String {
 // pub unsafe extern "system" fn ReadProcessMemory(hProcess: HANDLE, lpBaseAddress: LPCVOID, lpBuffer: LPVOID, nSize: SIZE_T, lpNumberOfBytesRead: *mut SIZE_T) -> BOOL
 pub fn read_process_memory_raw(process_handle: winnt::HANDLE, base_address: minwindef::LPCVOID, buffer: minwindef::LPVOID, size: usize) -> bool {
     unsafe {
-        let mut bytes_read: SIZE_T = 0;
-        let result = kernel32::ReadProcessMemory(process_handle,
+        let mut bytes_read: basetsd::SIZE_T = 0;
+        let result = memoryapi::ReadProcessMemory(process_handle,
                                                  base_address,
                                                  buffer as minwindef::LPVOID,
                                                  size as basetsd::SIZE_T,
@@ -71,30 +93,30 @@ pub fn read_process_memory<T>(process_handle: winnt::HANDLE, base_address: minwi
 }
 
 // pub unsafe extern "system" fn IsWow64Process(hProcess: HANDLE, Wow64Process: PBOOL) -> BOOL
-pub fn is_wow64_process(process_handle: HANDLE) -> bool {
+pub fn is_wow64_process(process_handle: winnt::HANDLE) -> bool {
     let mut result: minwindef::BOOL = minwindef::FALSE;
     unsafe {
-        kernel32::IsWow64Process(process_handle, &mut result);
+        wow64apiset::IsWow64Process(process_handle, &mut result);
     }
     result != minwindef::FALSE
 }
 
 // pub unsafe extern "system" fn IsImmersiveProcess(hProcess: HANDLE) -> BOOL
-pub fn is_immersive_process(process_handle: HANDLE) -> bool {
-    unsafe { user32::IsImmersiveProcess(process_handle) != minwindef::FALSE }
+pub fn is_immersive_process(process_handle: winnt::HANDLE) -> bool {
+    unsafe { winuser::IsImmersiveProcess(process_handle) != minwindef::FALSE }
 }
 
 // pub unsafe extern "system" fn CloseHandle(hObject: HANDLE) -> BOOL
-pub fn close_handle(handle: HANDLE) {
+pub fn close_handle(handle: winnt::HANDLE) {
     unsafe {
-        kernel32::CloseHandle(handle);
+        handleapi::CloseHandle(handle);
     }
 }
 
 // type WNDENUMPROC = Option<unsafe  extern "system" fn(HWND, LPARAM) -> BOOL>;
 // pub unsafe extern "system" fn EnumChildWindows(hwndParent: HWND, lpEnumFunc: WNDENUMPROC, lpParam: LPARAM) -> BOOL
 pub fn enum_child_windows(parent_window: windef::HWND, callback: winuser::WNDENUMPROC, lparam: minwindef::LPARAM) -> bool {
-    unsafe { user32::EnumChildWindows(parent_window, callback, lparam) != minwindef::FALSE }
+    unsafe { winuser::EnumChildWindows(parent_window, callback, lparam) != minwindef::FALSE }
 }
 
 pub fn to_wide_chars(s: &str) -> Vec<u16> {
@@ -104,18 +126,18 @@ pub fn to_wide_chars(s: &str) -> Vec<u16> {
 }
 
 // the first few slots in WNDCLASS.cbWndExtra is reserved for win32helper
-pub const WINDOW_EXTRA_SLOT_WND_PROC: c_int = 0;
-pub const WINDOW_EXTRA_SLOT_USER: c_int = POINTER_SIZE as c_int;
+pub const WINDOW_EXTRA_SLOT_WND_PROC: ctypes::c_int = 0;
+pub const WINDOW_EXTRA_SLOT_USER: ctypes::c_int = POINTER_SIZE as ctypes::c_int;
 
-pub fn get_window_extra(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PTR {
-    unsafe { user32::GetWindowLongPtrW(hwnd, index) }
+pub fn get_window_extra(hwnd: windef::HWND, index: ctypes::c_int) -> basetsd::LONG_PTR {
+    unsafe { winuser::GetWindowLongPtrW(hwnd, index) }
 }
 
-pub fn set_window_extra(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
-    unsafe { user32::SetWindowLongPtrW(hwnd, index, value) }
+pub fn set_window_extra(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
+    unsafe { winuser::SetWindowLongPtrW(hwnd, index, value) }
 }
 
-fn window_extra_real_index(index: c_int) -> c_int {
+fn window_extra_real_index(index: ctypes::c_int) -> ctypes::c_int {
     if index < 0 {
         index
     } else {
@@ -124,12 +146,12 @@ fn window_extra_real_index(index: c_int) -> c_int {
 }
 
 // pub unsafe extern "system" fn GetWindowLongPtrW(hWnd: HWND, nIndex: c_int) -> LONG_PTR
-pub fn get_window_long_ptr(hwnd: windef::HWND, index: c_int) -> basetsd::LONG_PTR {
+pub fn get_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int) -> basetsd::LONG_PTR {
     get_window_extra(hwnd, window_extra_real_index(index))
 }
 
 // pub unsafe extern "system" fn SetWindowLongPtrW(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR
-pub fn set_window_long_ptr(hwnd: windef::HWND, index: c_int, value: basetsd::LONG_PTR) -> bool {
+pub fn set_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd::LONG_PTR) -> bool {
     set_last_error(0);
     let result = set_window_extra(hwnd, window_extra_real_index(index), value);
     if result == 0 {
@@ -143,7 +165,7 @@ pub fn set_window_long_ptr(hwnd: windef::HWND, index: c_int, value: basetsd::LON
 
 // pub unsafe extern "system" fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE
 pub fn get_module_handle(module_name: winnt::LPCWSTR) -> minwindef::HMODULE {
-    unsafe { kernel32::GetModuleHandleW(module_name) }
+    unsafe { libloaderapi::GetModuleHandleW(module_name) }
 }
 
 pub fn get_current_instance() -> minwindef::HINSTANCE {
@@ -151,13 +173,13 @@ pub fn get_current_instance() -> minwindef::HINSTANCE {
 }
 
 // pub unsafe extern "system" fn PostQuitMessage(nExitCode: c_int)
-pub fn post_quit_message(exit_code: c_int) {
-    unsafe { user32::PostQuitMessage(exit_code) }
+pub fn post_quit_message(exit_code: ctypes::c_int) {
+    unsafe { winuser::PostQuitMessage(exit_code) }
 }
 
 // pub unsafe extern "system" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT
-pub fn def_window_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT {
-    unsafe { user32::DefWindowProcW(hwnd, msg, wparam, lparam) }
+pub fn def_window_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
+    unsafe { winuser::DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 
 // pub unsafe extern "system" fn GetMessageW(lpMsg: LPMSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) -> BOOL
@@ -165,15 +187,15 @@ pub fn def_window_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwind
 pub fn message_loop() {
     unsafe {
         let mut msg: winuser::MSG = mem::zeroed();
-        while user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != minwindef::FALSE {
-            user32::DispatchMessageW(&msg);
+        while winuser::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != minwindef::FALSE {
+            winuser::DispatchMessageW(&msg);
         }
     }
 }
 
 // pub unsafe extern "system" fn AllocConsole() -> BOOL
 pub fn alloc_console() -> bool {
-    unsafe { kernel32::AllocConsole() != minwindef::FALSE }
+    unsafe { consoleapi::AllocConsole() != minwindef::FALSE }
 }
 
 fn to_winapi_bool(x: bool) -> minwindef::BOOL {
@@ -182,7 +204,7 @@ fn to_winapi_bool(x: bool) -> minwindef::BOOL {
 
 // pub unsafe extern "system" fn CreateWaitableTimerW(lpTimerAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR) -> HANDLE
 pub fn create_waitable_timer(manual_reset: bool) -> winnt::HANDLE {
-    unsafe { kernel32::CreateWaitableTimerW(ptr::null_mut(), to_winapi_bool(manual_reset), ptr::null()) }
+    unsafe { synchapi::CreateWaitableTimerW(ptr::null_mut(), to_winapi_bool(manual_reset), ptr::null()) }
 }
 
 // type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
@@ -196,7 +218,7 @@ pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
                           resume_system: bool)
                           -> bool {
     unsafe {
-        kernel32::SetWaitableTimer(timer_handle,
+        synchapi::SetWaitableTimer(timer_handle,
                                    due_time,
                                    period,
                                    callback,
@@ -207,13 +229,13 @@ pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
 
 // pub unsafe extern "system" fn CancelWaitableTimer(hTimer: HANDLE) -> BOOL
 pub fn cancel_waitable_timer(timer_handle: winnt::HANDLE) -> bool {
-    unsafe { kernel32::CancelWaitableTimer(timer_handle) != minwindef::FALSE }
+    unsafe { synchapi::CancelWaitableTimer(timer_handle) != minwindef::FALSE }
 }
 
 // pub unsafe extern "system" fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR) -> HANDLE
 pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
     unsafe {
-        kernel32::CreateEventW(ptr::null_mut(),
+        synchapi::CreateEventW(ptr::null_mut(),
                                to_winapi_bool(manual_reset),
                                to_winapi_bool(initial_state),
                                ptr::null())
@@ -222,19 +244,19 @@ pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
 
 // pub unsafe extern "system" fn SetEvent(hEvent: HANDLE) -> BOOL
 pub fn set_event(event_handle: winnt::HANDLE) {
-    unsafe { kernel32::SetEvent(event_handle) };
+    unsafe { synchapi::SetEvent(event_handle) };
 }
 
 // pub unsafe extern "system" fn WaitForSingleObjectEx(hHandle: HANDLE, dwMilliseconds: DWORD, bAlertable: BOOL) -> DWORD
 pub fn wait_for_single_object_ex(handle: winnt::HANDLE, milliseconds: minwindef::DWORD) -> bool {
-    unsafe { kernel32::WaitForSingleObjectEx(handle, milliseconds, minwindef::TRUE) == winbase::WAIT_OBJECT_0 }
+    unsafe { synchapi::WaitForSingleObjectEx(handle, milliseconds, minwindef::TRUE) == winbase::WAIT_OBJECT_0 }
 }
 
 // pub unsafe extern "system" fn CreateMutexW(lpMutexAttributes: LPSECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR) -> HANDLE
 pub fn create_mutex(initial_owner: bool, name: &str) -> winnt::HANDLE {
     let name_vec = to_wide_chars(name);
     unsafe {
-        kernel32::CreateMutexW(ptr::null_mut(),
+        synchapi::CreateMutexW(ptr::null_mut(),
                                to_winapi_bool(initial_owner),
                                name_vec.as_ptr())
     }
@@ -242,12 +264,12 @@ pub fn create_mutex(initial_owner: bool, name: &str) -> winnt::HANDLE {
 
 // pub unsafe extern "system" fn GetLastError() -> DWORD
 pub fn get_last_error() -> minwindef::DWORD {
-    unsafe { kernel32::GetLastError() }
+    unsafe { errhandlingapi::GetLastError() }
 }
 
 // pub unsafe extern "system" fn SetLastError(dwErrCode: DWORD)
 pub fn set_last_error(value: minwindef::DWORD) {
-    unsafe { kernel32::SetLastError(value) };
+    unsafe { errhandlingapi::SetLastError(value) };
 }
 
 pub fn is_app_already_runniing(name: &str) -> bool {
@@ -274,7 +296,7 @@ pub const WTS_SESSION_LOCK: minwindef::WPARAM = 7;
 pub const WTS_SESSION_UNLOCK: minwindef::WPARAM = 8;
 
 // DEFINE_GUID!(GUID_SESSION_USER_PRESENCE,  0x3c0f4548, 0xc03f, 0x4c4d, 0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76);
-pub const GUID_SESSION_USER_PRESENCE: GUID = GUID {
+pub const GUID_SESSION_USER_PRESENCE: guiddef::GUID = guiddef::GUID {
     Data1: 0x3c0f4548,
     Data2: 0xc03f,
     Data3: 0x4c4d,
@@ -282,14 +304,14 @@ pub const GUID_SESSION_USER_PRESENCE: GUID = GUID {
 };
 
 // DEFINE_GUID!(GUID_SESSION_DISPLAY_STATUS, 0x2b84c20e, 0xad23, 0x4ddf, 0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5);
-pub const GUID_SESSION_DISPLAY_STATUS: GUID = GUID {
+pub const GUID_SESSION_DISPLAY_STATUS: guiddef::GUID = guiddef::GUID {
     Data1: 0x2b84c20e,
     Data2: 0xad23,
     Data3: 0x4ddf,
     Data4: [0x93, 0xdb, 0x05, 0xff, 0xbd, 0x7e, 0xfc, 0xa5],
 };
 
-pub fn is_equal_guid(x: &GUID, y: &GUID) -> bool {
+pub fn is_equal_guid(x: &guiddef::GUID, y: &guiddef::GUID) -> bool {
     x.Data1 == y.Data1 && x.Data2 == y.Data2 && x.Data3 == y.Data3 && x.Data4 == y.Data4
 }
 
@@ -302,12 +324,12 @@ pub fn is_equal_guid(x: &GUID, y: &GUID) -> bool {
 pub type HPOWERNOTIFY = winnt::HANDLE;
 
 #[allow(non_snake_case)]
-#[link(name = "user32")]
+#[link(name = "winuser")]
 extern "system" {
-    pub fn RegisterPowerSettingNotification(hRecipient: winnt::HANDLE, PowerSettingGuid: &GUID, Flags: minwindef::DWORD) -> HPOWERNOTIFY;
+    pub fn RegisterPowerSettingNotification(hRecipient: winnt::HANDLE, PowerSettingGuid: &guiddef::GUID, Flags: minwindef::DWORD) -> HPOWERNOTIFY;
 }
 
-pub fn register_power_setting_notification(recipient: winnt::HANDLE, setting: &GUID, flags: minwindef::DWORD) -> HPOWERNOTIFY {
+pub fn register_power_setting_notification(recipient: winnt::HANDLE, setting: &guiddef::GUID, flags: minwindef::DWORD) -> HPOWERNOTIFY {
     unsafe { RegisterPowerSettingNotification(recipient, setting, flags) }
 }
 
@@ -337,7 +359,7 @@ pub const NOTIFY_FOR_THIS_SESSION: minwindef::DWORD = 0;
 pub fn get_local_time() -> minwinbase::SYSTEMTIME {
     unsafe {
         let mut now: minwinbase::SYSTEMTIME = mem::zeroed();
-        kernel32::GetLocalTime(&mut now);
+        sysinfoapi::GetLocalTime(&mut now);
         return now;
     }
 }

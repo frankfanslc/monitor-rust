@@ -1,4 +1,3 @@
-extern crate winapi;
 
 pub trait Log {
     fn log(&self, window_title: String, command_line: String);
@@ -26,7 +25,12 @@ impl Log for NopLogger {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-use self::winapi::*;
+extern crate winapi;
+
+use self::winapi::{
+        um::winnt,
+        um::minwinbase};
+
 use super::win32helper;
 use std::fs::File;
 use std::mem;

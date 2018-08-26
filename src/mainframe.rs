@@ -1,6 +1,13 @@
 extern crate winapi;
 
-use self::winapi::*;
+use self::winapi::{
+        ctypes,
+        shared::minwindef,
+        shared::windef,
+        shared::basetsd,
+        um::winnt,
+        um::winuser};
+
 use super::win32helper;
 use std::ptr;
 use std::mem;
@@ -37,7 +44,7 @@ impl win32helper::PeriodicTimer {
         let instance_handle = win32helper::get_current_instance();
         let class_name = "{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}";
         let window_name = "Monitor";
-        let wnd_extra: c_int = win32helper::POINTER_SIZE as c_int; // reserve a space for self pointer
+        let wnd_extra: ctypes::c_int = win32helper::POINTER_SIZE as ctypes::c_int; // reserve a space for self pointer
 
         let hwnd = win32helper::create_window(class_name,
                                               window_name,

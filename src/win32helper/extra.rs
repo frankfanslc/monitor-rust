@@ -1,8 +1,13 @@
 extern crate winapi;
-extern crate user32;
-extern crate kernel32;
 
-use self::winapi::*;
+use self::winapi::{
+        ctypes,
+        shared::minwindef,
+        shared::windef,
+        shared::basetsd,
+        um::winnt,
+        um::winuser};
+
 use std::mem;
 use std::ptr;
 
@@ -139,14 +144,14 @@ pub fn get_universal_app(window_handle: &mut windef::HWND, process_id: &mut minw
 pub type WndProc = fn(hwnd: windef::HWND,
                       msg: minwindef::UINT,
                       wparam: minwindef::WPARAM,
-                      lparam: LPARAM) -> minwindef::LRESULT;
+                      lparam: minwindef::LPARAM) -> minwindef::LRESULT;
 
 // pub unsafe extern "system" fn RegisterClassW(lpWndClass: *const WNDCLASSW) -> ATOM
 // pub unsafe extern "system" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int,
 //                                               hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID) -> HWND
-pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, style: minwindef::DWORD, instance_handle: minwindef::HINSTANCE, wnd_extra: c_int) -> windef::HWND {
+pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, style: minwindef::DWORD, instance_handle: minwindef::HINSTANCE, wnd_extra: ctypes::c_int) -> windef::HWND {
 
-    unsafe extern "system" fn static_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT {
+    unsafe extern "system" fn static_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
         if msg == winuser::WM_NCCREATE {
             let create_structure = lparam as *const winuser::CREATESTRUCTW;
             let user_wnd_proc = (*create_structure).lpCreateParams;
@@ -176,11 +181,11 @@ pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, sty
     wnd_class.cbWndExtra = wnd_extra + WINDOW_EXTRA_SLOT_USER;
 
     unsafe {
-        if user32::RegisterClassW(&wnd_class) == 0 {
+        if winuser::RegisterClassW(&wnd_class) == 0 {
             return ptr::null_mut();
         }
 
-        user32::CreateWindowExW(0,
+        winuser::CreateWindowExW(0,
                                 class_name_vec.as_ptr(),
                                 window_name_vec.as_ptr(),
                                 style,
@@ -191,6 +196,6 @@ pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, sty
                                 ptr::null_mut(), // hWndParent
                                 ptr::null_mut(), // hMenu
                                 instance_handle,
-                                wnd_proc as LPVOID) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
+                                wnd_proc as minwindef::LPVOID) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
     }
 }
