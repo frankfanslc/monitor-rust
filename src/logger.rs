@@ -35,7 +35,6 @@ use super::win32helper;
 use std::fs::File;
 use std::mem;
 
-#[derive(Debug)]
 struct Entry {
     timestamp: minwinbase::SYSTEMTIME,
     duration_in_seconds: u32,
@@ -43,7 +42,6 @@ struct Entry {
     command_line: String,
 }
 
-#[derive(Debug)]
 pub struct Logger {
     file: File,
     interval_in_seconds: u32,

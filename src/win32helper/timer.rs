@@ -68,8 +68,16 @@ impl PeriodicTimer {
         set_event(self.start_event);
     }
 
+    fn i64_to_large_integer(i: i64) -> winnt::LARGE_INTEGER {
+        unsafe {
+            let mut large_integer: winnt::LARGE_INTEGER = mem::zeroed();
+            *large_integer.QuadPart_mut() = i;
+            large_integer
+        }
+    }
+
     fn start_for_real(&mut self) {
-        let due_time: winnt::LARGE_INTEGER = -1; // trigger immediately
+        let due_time: winnt::LARGE_INTEGER = PeriodicTimer::i64_to_large_integer(-1); // trigger immediately
         let resume_system = false;
         let raw_ptr: *mut PeriodicTimer = self;
         if set_waitable_timer(self.timer_handle,
