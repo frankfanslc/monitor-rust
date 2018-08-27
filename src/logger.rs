@@ -81,6 +81,7 @@ impl Logger {
         Logger {
             file: OpenOptions::new()
                 .append(true)
+                .create(true)
                 .share_mode(winnt::FILE_SHARE_READ)
                 .open(file_name)
                 .unwrap(),

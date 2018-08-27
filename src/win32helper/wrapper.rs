@@ -14,7 +14,7 @@ use self::winapi::{
         um::winnt,
         um::winuser,
         um::wow64apiset,
-        
+
         um::consoleapi,
         um::errhandlingapi,
         um::handleapi,
@@ -324,7 +324,7 @@ pub fn is_equal_guid(x: &guiddef::GUID, y: &guiddef::GUID) -> bool {
 pub type HPOWERNOTIFY = winnt::HANDLE;
 
 #[allow(non_snake_case)]
-#[link(name = "winuser")]
+#[link(name = "user32")]
 extern "system" {
     pub fn RegisterPowerSettingNotification(hRecipient: winnt::HANDLE, PowerSettingGuid: &guiddef::GUID, Flags: minwindef::DWORD) -> HPOWERNOTIFY;
 }

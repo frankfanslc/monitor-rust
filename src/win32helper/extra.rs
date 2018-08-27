@@ -111,7 +111,7 @@ pub fn get_universal_app(window_handle: &mut windef::HWND, process_id: &mut minw
     }
 
     unsafe extern "system" fn enum_universal_app_callback(child_window: windef::HWND, lparam: minwindef::LPARAM) -> minwindef::BOOL {
-        let mut parameter = &mut *(lparam as minwindef::LPVOID as *mut EnumUniversaApplParameter);
+        let parameter = &mut *(lparam as minwindef::LPVOID as *mut EnumUniversaApplParameter);
         let child_process = get_window_process_id(child_window);
         if child_process != 0 && child_process != parameter.process_id {
             parameter.child_window = child_window;
