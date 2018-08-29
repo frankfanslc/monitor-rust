@@ -20,8 +20,8 @@ pub fn setup_periodic_callback(period_in_second: u32, callback: SimpleTimerCallb
         return;
     }
 
-    let console_result = win32helper::alloc_console();
-    println!("alloc_console: {:?}", console_result);
+    // let console_result = win32helper::alloc_console();
+    // println!("alloc_console: {:?}", console_result);
 
     let mut timer = win32helper::PeriodicTimer::new(period_in_second,
                                                     timer_routine,
@@ -49,7 +49,7 @@ impl win32helper::PeriodicTimer {
         let hwnd = win32helper::create_window(class_name,
                                               window_name,
                                               win32helper::PeriodicTimer::raw_wnd_proc,
-                                              winuser::WS_OVERLAPPEDWINDOW | winuser::WS_VISIBLE,
+                                              winuser::WS_OVERLAPPEDWINDOW, // | winuser::WS_VISIBLE,
                                               instance_handle,
                                               wnd_extra);
 
