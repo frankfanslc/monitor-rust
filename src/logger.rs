@@ -1,11 +1,17 @@
 
 pub trait Log {
     fn log(&self, window_title: String, command_line: String);
+    fn get_last_entry(&self) -> (String, String);
 }
 
 pub fn log(window_title: String, command_line: String) {
     let logger = unsafe { &*LOGGER };
     logger.log(window_title, command_line);
+}
+
+pub fn get_last_entry() -> (String, String) {
+    let logger = unsafe { &*LOGGER };
+    logger.get_last_entry()
 }
 
 pub fn set_logger<M>(make_logger: M)
@@ -21,6 +27,9 @@ static mut LOGGER: *const Log = &NopLogger;
 struct NopLogger;
 impl Log for NopLogger {
     fn log(&self, _: String, _: String) {}
+    fn get_last_entry(&self) -> (String, String) {
+        ("".to_string(), "".to_string())
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -56,6 +65,13 @@ impl Log for Logger {
         unsafe {
             let logger: &mut Logger = mem::transmute(self as *const Logger);
             logger.add_entry(window_title, command_line);
+        }
+    }
+
+    fn get_last_entry(&self) -> (String, String) {
+        unsafe {
+            let logger: &mut Logger = mem::transmute(self as *const Logger);
+            logger.get_last_entry()
         }
     }
 }
@@ -113,6 +129,10 @@ impl Logger {
             return;
         }
         self.entries.push(mem::replace(&mut self.last_entry, entry));
+    }
+
+    pub fn get_last_entry(&self) -> (String, String) {
+        (self.last_entry.window_title.clone(), self.last_entry.command_line.clone())
     }
 
     fn flush(&mut self) {
