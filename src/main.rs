@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod win32helper;
 
 mod mainframe;
