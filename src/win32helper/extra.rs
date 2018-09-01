@@ -141,23 +141,35 @@ pub fn get_universal_app(window_handle: &mut windef::HWND, process_id: &mut minw
 }
 
 // fn wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: LPARAM) -> minwindef::LRESULT
-pub type WndProc = fn(hwnd: windef::HWND,
-                      msg: minwindef::UINT,
-                      wparam: minwindef::WPARAM,
-                      lparam: minwindef::LPARAM) -> minwindef::LRESULT;
+pub trait WindowTrait {
+    fn wnd_proc(&mut self,
+                hwnd: windef::HWND,
+                msg: minwindef::UINT,
+                wparam: minwindef::WPARAM,
+                lparam: minwindef::LPARAM) -> minwindef::LRESULT;
+}
 
 // pub unsafe extern "system" fn RegisterClassW(lpWndClass: *const WNDCLASSW) -> ATOM
 // pub unsafe extern "system" fn CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int,
 //                                               hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID) -> HWND
-pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, style: minwindef::DWORD, instance_handle: minwindef::HINSTANCE, wnd_extra: ctypes::c_int) -> windef::HWND {
+pub fn create_window<W>(window: &mut W,
+                        class_name: &str, 
+                        window_name: &str, 
+                        style: minwindef::DWORD, 
+                        instance_handle: minwindef::HINSTANCE, 
+                        wnd_extra: ctypes::c_int
+                        ) -> windef::HWND 
+        where W: WindowTrait {
 
-    unsafe extern "system" fn static_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
+    unsafe extern "system" fn static_wnd_proc<W>(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT 
+        where W: WindowTrait {
+
         if msg == winuser::WM_NCCREATE {
             let create_structure = lparam as *const winuser::CREATESTRUCTW;
-            let user_wnd_proc = (*create_structure).lpCreateParams;
+            let window = (*create_structure).lpCreateParams;
             set_window_extra(hwnd,
                              WINDOW_EXTRA_SLOT_WND_PROC,
-                             user_wnd_proc as basetsd::LONG_PTR); // lparam was passed from CreateWindow() call, as wnd_proc
+                             window as basetsd::LONG_PTR); // lparam was passed from CreateWindow() call, as self pointer to WindowTrait
         }
 
         let window_extra = get_window_extra(hwnd, WINDOW_EXTRA_SLOT_WND_PROC);
@@ -165,16 +177,15 @@ pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, sty
             return def_window_proc(hwnd, msg, wparam, lparam);
         }
 
-        // let user_wnd_proc = window_extra as minwindef::LPCVOID as WndProc;
-        let user_wnd_proc: WndProc = mem::transmute(window_extra);
-        user_wnd_proc(hwnd, msg, wparam, lparam)
+        let window: &mut W = mem::transmute(window_extra);
+        window.wnd_proc(hwnd, msg, wparam, lparam)
     }
 
     let class_name_vec = to_wide_chars(class_name);
     let window_name_vec = to_wide_chars(window_name);
 
     let mut wnd_class: winuser::WNDCLASSW = unsafe { mem::zeroed() };
-    wnd_class.lpfnWndProc = Some(static_wnd_proc);
+    wnd_class.lpfnWndProc = Some(static_wnd_proc::<W>);
     wnd_class.hInstance = instance_handle;
     wnd_class.hbrBackground = winuser::COLOR_BACKGROUND as windef::HBRUSH;
     wnd_class.lpszClassName = class_name_vec.as_ptr();
@@ -196,6 +207,6 @@ pub fn create_window(class_name: &str, window_name: &str, wnd_proc: WndProc, sty
                                 ptr::null_mut(), // hWndParent
                                 ptr::null_mut(), // hMenu
                                 instance_handle,
-                                wnd_proc as minwindef::LPVOID) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
+                                window as *mut W as minwindef::LPVOID) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
     }
 }

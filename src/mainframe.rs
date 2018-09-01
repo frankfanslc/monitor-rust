@@ -4,7 +4,6 @@ use self::winapi::{
         ctypes,
         shared::minwindef,
         shared::windef,
-        shared::basetsd,
         um::winnt,
         um::winuser};
 
@@ -39,26 +38,43 @@ fn timer_routine(context: win32helper::TimerContext) {
     callback();
 }
 
+impl win32helper::WindowTrait for win32helper::PeriodicTimer {
+
+    fn wnd_proc(&mut self, hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
+        match msg {
+            winuser::WM_POWERBROADCAST => {
+                if wparam == win32helper::PBT_POWERSETTINGCHANGE && lparam != 0 {
+                    let setting: &win32helper::POWERBROADCAST_SETTING = unsafe { mem::transmute(lparam) };
+                    self.power_event(setting);
+                }
+            }
+            winuser::WM_WTSSESSION_CHANGE => {
+                self.logon_event(wparam);
+            }
+            winuser::WM_DESTROY => {
+                win32helper::post_quit_message(0);
+            }
+            _ => {},
+        }
+        win32helper::def_window_proc(hwnd, msg, wparam, lparam)
+    }
+}
+
 impl win32helper::PeriodicTimer {
     pub fn create_window(&mut self) -> windef::HWND {
         let instance_handle = win32helper::get_current_instance();
         let class_name = "{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}";
         let window_name = "Monitor";
-        let wnd_extra: ctypes::c_int = win32helper::POINTER_SIZE as ctypes::c_int; // reserve a space for self pointer
+        let wnd_extra: ctypes::c_int = 0;
 
-        let hwnd = win32helper::create_window(class_name,
+        let hwnd = win32helper::create_window::<win32helper::PeriodicTimer>
+                                             (self,
+                                              class_name,
                                               window_name,
-                                              win32helper::PeriodicTimer::raw_wnd_proc,
                                               winuser::WS_OVERLAPPEDWINDOW, // | winuser::WS_VISIBLE,
                                               instance_handle,
                                               wnd_extra);
 
-        if !win32helper::set_window_long_ptr(hwnd,
-                                             0,
-                                             self as *mut win32helper::PeriodicTimer as basetsd::LONG_PTR) {
-            println!("set_window_long_ptr failed with {:?}",
-                     win32helper::get_last_error());
-        }
         hwnd
     }
 
@@ -78,37 +94,6 @@ impl win32helper::PeriodicTimer {
             println!("wts_register_session_notification failed with {:?}",
                      win32helper::get_last_error());
             return;
-        }
-    }
-
-    pub fn raw_wnd_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
-        let raw_ptr = win32helper::get_window_long_ptr(hwnd, 0);
-        if raw_ptr != 0 {
-            let timer = unsafe { &mut *(raw_ptr as *mut win32helper::PeriodicTimer) };
-            timer.wnd_proc(hwnd, msg, wparam, lparam);
-        }
-
-        match msg {
-            winuser::WM_DESTROY => {
-                win32helper::post_quit_message(0);
-                0
-            }
-            _ => win32helper::def_window_proc(hwnd, msg, wparam, lparam),
-        }
-    }
-
-    fn wnd_proc(&mut self, _: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) {
-        match msg {
-            winuser::WM_POWERBROADCAST => {
-                if wparam == win32helper::PBT_POWERSETTINGCHANGE && lparam != 0 {
-                    let setting: &win32helper::POWERBROADCAST_SETTING = unsafe { mem::transmute(lparam) };
-                    self.power_event(setting);
-                }
-            }
-            winuser::WM_WTSSESSION_CHANGE => {
-                self.logon_event(wparam);
-            }
-            _ => {}
         }
     }
 

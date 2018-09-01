@@ -137,31 +137,31 @@ pub fn set_window_extra(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd
     unsafe { winuser::SetWindowLongPtrW(hwnd, index, value) }
 }
 
-fn window_extra_real_index(index: ctypes::c_int) -> ctypes::c_int {
-    if index < 0 {
-        index
-    } else {
-        index + WINDOW_EXTRA_SLOT_USER
-    }
-}
+// fn window_extra_real_index(index: ctypes::c_int) -> ctypes::c_int {
+//     if index < 0 {
+//         index
+//     } else {
+//         index + WINDOW_EXTRA_SLOT_USER
+//     }
+// }
 
-// pub unsafe extern "system" fn GetWindowLongPtrW(hWnd: HWND, nIndex: c_int) -> LONG_PTR
-pub fn get_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int) -> basetsd::LONG_PTR {
-    get_window_extra(hwnd, window_extra_real_index(index))
-}
+// // pub unsafe extern "system" fn GetWindowLongPtrW(hWnd: HWND, nIndex: c_int) -> LONG_PTR
+// pub fn get_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int) -> basetsd::LONG_PTR {
+//     get_window_extra(hwnd, window_extra_real_index(index))
+// }
 
-// pub unsafe extern "system" fn SetWindowLongPtrW(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR
-pub fn set_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd::LONG_PTR) -> bool {
-    set_last_error(0);
-    let result = set_window_extra(hwnd, window_extra_real_index(index), value);
-    if result == 0 {
-        let last_error = get_last_error();
-        if last_error != 0 {
-            return false;
-        }
-    }
-    return true;
-}
+// // pub unsafe extern "system" fn SetWindowLongPtrW(hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR) -> LONG_PTR
+// pub fn set_window_long_ptr(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd::LONG_PTR) -> bool {
+//     set_last_error(0);
+//     let result = set_window_extra(hwnd, window_extra_real_index(index), value);
+//     if result == 0 {
+//         let last_error = get_last_error();
+//         if last_error != 0 {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
 
 // pub unsafe extern "system" fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE
 pub fn get_module_handle(module_name: winnt::LPCWSTR) -> minwindef::HMODULE {
@@ -268,9 +268,9 @@ pub fn get_last_error() -> minwindef::DWORD {
 }
 
 // pub unsafe extern "system" fn SetLastError(dwErrCode: DWORD)
-pub fn set_last_error(value: minwindef::DWORD) {
-    unsafe { errhandlingapi::SetLastError(value) };
-}
+// pub fn set_last_error(value: minwindef::DWORD) {
+//     unsafe { errhandlingapi::SetLastError(value) };
+// }
 
 pub fn is_app_already_runniing(name: &str) -> bool {
     let handle = create_mutex(false, name);
