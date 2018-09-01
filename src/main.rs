@@ -12,20 +12,29 @@ use std::net;
 use std::thread;
 use std::process::Command;
 
-const CHECK_INTERNVAL_IN_SECONDS: u32 = 10;
-const FLUSH_INTERVAL_IN_MINUTES: u32 = 15;
+pub const CHECK_INTERNVAL_IN_SECONDS: u32 = 10;
+pub const FLUSH_INTERVAL_IN_MINUTES: u32 = 15;
 const LISTENING_PORT: u16 = 50080;
 
 fn main() {
+    if win32helper::is_app_already_runniing("Local\\{AB2F0A5E-FAA2-4664-B3C2-25D3984F0A20}") {
+        return;
+    }
+
+    let console_result = win32helper::alloc_console();
+    println!("alloc_console: {:?}", console_result);
+
     let logger = Logger::new(CHECK_INTERNVAL_IN_SECONDS, FLUSH_INTERVAL_IN_MINUTES);
     set_logger(|| Box::new(logger));
 
     start_web_server();
 
-    setup_periodic_callback(CHECK_INTERNVAL_IN_SECONDS, get_foreground_app);
+    MainFrame::new();
+
+    win32helper::message_loop();
 }
 
-fn get_foreground_app() {
+pub fn get_foreground_app() {
     let mut window_handle = win32helper::get_foreground_window();
     let window_text = win32helper::get_window_text(window_handle);
     let mut process_id = win32helper::get_window_process_id(window_handle);
@@ -61,7 +70,10 @@ fn start_web_server() {
         println!("Listen on {}:{}", &ip_address, LISTENING_PORT);
         let listener = net::TcpListener::bind((ip_address.as_str(), LISTENING_PORT)).unwrap();
         for stream in listener.incoming() {
-            handle_connection(stream.unwrap());
+            match stream {
+                Ok(t) => handle_connection(t),
+                Err(_) => return,
+            }            
         }
     });
 }

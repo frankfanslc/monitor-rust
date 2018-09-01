@@ -15,7 +15,7 @@ use self::winapi::{
         um::winuser,
         um::wow64apiset,
 
-        // um::consoleapi,
+        um::consoleapi,
         um::errhandlingapi,
         um::handleapi,
         um::libloaderapi,
@@ -194,9 +194,9 @@ pub fn message_loop() {
 }
 
 // pub unsafe extern "system" fn AllocConsole() -> BOOL
-// pub fn alloc_console() -> bool {
-//     unsafe { consoleapi::AllocConsole() != minwindef::FALSE }
-// }
+pub fn alloc_console() -> bool {
+    unsafe { consoleapi::AllocConsole() != minwindef::FALSE }
+}
 
 fn to_winapi_bool(x: bool) -> minwindef::BOOL {
     if x { minwindef::TRUE } else { minwindef::FALSE }

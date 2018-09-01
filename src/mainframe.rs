@@ -1,5 +1,8 @@
 extern crate winapi;
 
+use CHECK_INTERNVAL_IN_SECONDS;
+use get_foreground_app;
+
 use self::winapi::{
         ctypes,
         shared::minwindef,
@@ -11,34 +14,7 @@ use super::win32helper;
 use std::ptr;
 use std::mem;
 
-type SimpleTimerCallback = fn();
-
-pub fn setup_periodic_callback(period_in_second: u32, callback: SimpleTimerCallback) {
-
-    if win32helper::is_app_already_runniing("Local\\{AB2F0A5E-FAA2-4664-B3C2-25D3984F0A20}") {
-        return;
-    }
-
-    // let console_result = win32helper::alloc_console();
-    // println!("alloc_console: {:?}", console_result);
-
-    let mut timer = win32helper::PeriodicTimer::new(period_in_second,
-                                                    timer_routine,
-                                                    callback as win32helper::TimerContext);
-
-    let hwnd = timer.create_window();
-    timer.register_notification(hwnd);
-    timer.start_wait();
-
-    win32helper::message_loop();
-}
-
-fn timer_routine(context: win32helper::TimerContext) {
-    let callback: SimpleTimerCallback = unsafe { mem::transmute(context) };
-    callback();
-}
-
-impl win32helper::WindowTrait for win32helper::PeriodicTimer {
+impl win32helper::WindowTrait for MainFrame {
 
     fn wnd_proc(&mut self, hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
         match msg {
@@ -60,18 +36,49 @@ impl win32helper::WindowTrait for win32helper::PeriodicTimer {
     }
 }
 
-impl win32helper::PeriodicTimer {
+impl win32helper::TimerTrait for MyTimer {
+    fn timer_func(&mut self) {
+        get_foreground_app();
+    }
+}
+
+pub struct MyTimer {
+
+}
+
+pub struct MainFrame {
+    timer: win32helper::PeriodicTimer<MyTimer>,
+}
+
+
+impl MainFrame {
+
+    pub fn new() -> Self {
+
+        let timer = MyTimer {};
+        let timer = win32helper::PeriodicTimer::<MyTimer>::new(CHECK_INTERNVAL_IN_SECONDS, timer);
+        let mut frame = MainFrame {
+            timer: timer,
+        };
+
+        let hwnd = frame.create_window();
+        frame.register_notification(hwnd);
+        frame.timer.start_wait();
+
+        frame
+    }
+
     pub fn create_window(&mut self) -> windef::HWND {
         let instance_handle = win32helper::get_current_instance();
         let class_name = "{8677407E-01E9-4D3E-8BF5-F9082CE08AEB}";
         let window_name = "Monitor";
         let wnd_extra: ctypes::c_int = 0;
 
-        let hwnd = win32helper::create_window::<win32helper::PeriodicTimer>
+        let hwnd = win32helper::create_window::<MainFrame>
                                              (self,
                                               class_name,
                                               window_name,
-                                              winuser::WS_OVERLAPPEDWINDOW, // | winuser::WS_VISIBLE,
+                                              winuser::WS_OVERLAPPEDWINDOW | winuser::WS_VISIBLE,
                                               instance_handle,
                                               wnd_extra);
 
@@ -104,10 +111,10 @@ impl win32helper::PeriodicTimer {
             let power_user_inactive = 2;
 
             let data = setting.data;
-            if self.is_running() && data == power_user_inactive {
-                self.stop();
-            } else if !self.is_running() && data == power_user_present {
-                self.start();
+            if self.timer.is_running() && data == power_user_inactive {
+                self.timer.stop();
+            } else if !self.timer.is_running() && data == power_user_present {
+                self.timer.start();
             }
 
         } else if win32helper::is_equal_guid(&setting.power_setting,
@@ -116,19 +123,19 @@ impl win32helper::PeriodicTimer {
             let display_on = 1;
 
             let data = setting.data;
-            if self.is_running() && data == display_off {
-                self.stop();
-            } else if !self.is_running() && data == display_on {
-                self.start();
+            if self.timer.is_running() && data == display_off {
+                self.timer.stop();
+            } else if !self.timer.is_running() && data == display_on {
+                self.timer.start();
             }
         }
     }
 
     fn logon_event(&mut self, data: minwindef::WPARAM) {
-        if self.is_running() && data == win32helper::WTS_SESSION_LOCK {
-            self.stop();
-        } else if !self.is_running() && data == win32helper::WTS_SESSION_UNLOCK {
-            self.start();
+        if self.timer.is_running() && data == win32helper::WTS_SESSION_LOCK {
+            self.timer.stop();
+        } else if !self.timer.is_running() && data == win32helper::WTS_SESSION_UNLOCK {
+            self.timer.start();
         }
     }
 }
