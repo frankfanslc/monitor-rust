@@ -28,9 +28,7 @@ fn main() {
 
     start_web_server();
 
-    MainFrame::new();
-
-    win32helper::message_loop();
+    MainFrame::run();
 }
 
 pub fn get_foreground_app() {

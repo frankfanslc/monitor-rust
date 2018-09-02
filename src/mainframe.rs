@@ -69,7 +69,7 @@ impl win32helper::WindowTrait for MainFrame {
 }
 
 impl MainFrame {
-    pub fn new() -> Self {
+    pub fn run() {
         let timer = MyTimer {
             hwnd: None,
             running: false,
@@ -89,7 +89,7 @@ impl MainFrame {
         frame.register_notification(hwnd);
         frame.timer.start();
 
-        frame
+        win32helper::message_loop();
     }
 
     pub fn create_window(&mut self) -> windef::HWND {
