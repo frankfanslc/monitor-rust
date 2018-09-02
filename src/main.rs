@@ -21,8 +21,8 @@ fn main() {
         return;
     }
 
-    let console_result = win32helper::alloc_console();
-    println!("alloc_console: {:?}", console_result);
+    // let console_result = win32helper::alloc_console();
+    // println!("alloc_console: {:?}", console_result);
 
     let logger = Logger::new(CHECK_INTERNVAL_IN_SECONDS, FLUSH_INTERVAL_IN_MINUTES);
     set_logger(|| Box::new(logger));

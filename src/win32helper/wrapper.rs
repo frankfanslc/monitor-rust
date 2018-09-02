@@ -10,12 +10,11 @@ use self::winapi::{
         shared::winerror,
 
         um::minwinbase,
-        um::winbase,
         um::winnt,
         um::winuser,
         um::wow64apiset,
 
-        um::consoleapi,
+        // um::consoleapi,
         um::errhandlingapi,
         um::handleapi,
         um::libloaderapi,
@@ -193,64 +192,64 @@ pub fn message_loop() {
     }
 }
 
-// pub unsafe extern "system" fn AllocConsole() -> BOOL
-pub fn alloc_console() -> bool {
-    unsafe { consoleapi::AllocConsole() != minwindef::FALSE }
-}
+// // pub unsafe extern "system" fn AllocConsole() -> BOOL
+// pub fn alloc_console() -> bool {
+//     unsafe { consoleapi::AllocConsole() != minwindef::FALSE }
+// }
 
 fn to_winapi_bool(x: bool) -> minwindef::BOOL {
     if x { minwindef::TRUE } else { minwindef::FALSE }
 }
 
-// pub unsafe extern "system" fn CreateWaitableTimerW(lpTimerAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR) -> HANDLE
-pub fn create_waitable_timer(manual_reset: bool) -> winnt::HANDLE {
-    unsafe { synchapi::CreateWaitableTimerW(ptr::null_mut(), to_winapi_bool(manual_reset), ptr::null()) }
-}
+// // pub unsafe extern "system" fn CreateWaitableTimerW(lpTimerAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR) -> HANDLE
+// pub fn create_waitable_timer(manual_reset: bool) -> winnt::HANDLE {
+//     unsafe { synchapi::CreateWaitableTimerW(ptr::null_mut(), to_winapi_bool(manual_reset), ptr::null()) }
+// }
 
-// type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
-// pub unsafe extern "system" fn SetWaitableTimer(hTimer: HANDLE, lpDueTime: *const LARGE_INTEGER, lPeriod: LONG,
-//                                                pfnCompletionRoutine: PTIMERAPCROUTINE, lpArgToCompletionRoutine: LPVOID, fResume: BOOL) -> BOOL
-pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
-                          due_time: *const winnt::LARGE_INTEGER,
-                          period: winnt::LONG,
-                          callback: synchapi::PTIMERAPCROUTINE,
-                          callback_context: minwindef::LPVOID,
-                          resume_system: bool)
-                          -> bool {
-    unsafe {
-        synchapi::SetWaitableTimer(timer_handle,
-                                   due_time,
-                                   period,
-                                   callback,
-                                   callback_context,
-                                   to_winapi_bool(resume_system)) != minwindef::FALSE
-    }
-}
+// // type PTIMERAPCROUTINE = Option<unsafe extern "system" fn(lpArgToCompletionRoutine: LPVOID, dwTimerLowValue: DWORD, dwTimerHighValue: DWORD)>;
+// // pub unsafe extern "system" fn SetWaitableTimer(hTimer: HANDLE, lpDueTime: *const LARGE_INTEGER, lPeriod: LONG,
+// //                                                pfnCompletionRoutine: PTIMERAPCROUTINE, lpArgToCompletionRoutine: LPVOID, fResume: BOOL) -> BOOL
+// pub fn set_waitable_timer(timer_handle: winnt::HANDLE,
+//                           due_time: *const winnt::LARGE_INTEGER,
+//                           period: winnt::LONG,
+//                           callback: synchapi::PTIMERAPCROUTINE,
+//                           callback_context: minwindef::LPVOID,
+//                           resume_system: bool)
+//                           -> bool {
+//     unsafe {
+//         synchapi::SetWaitableTimer(timer_handle,
+//                                    due_time,
+//                                    period,
+//                                    callback,
+//                                    callback_context,
+//                                    to_winapi_bool(resume_system)) != minwindef::FALSE
+//     }
+// }
 
-// pub unsafe extern "system" fn CancelWaitableTimer(hTimer: HANDLE) -> BOOL
-pub fn cancel_waitable_timer(timer_handle: winnt::HANDLE) -> bool {
-    unsafe { synchapi::CancelWaitableTimer(timer_handle) != minwindef::FALSE }
-}
+// // pub unsafe extern "system" fn CancelWaitableTimer(hTimer: HANDLE) -> BOOL
+// pub fn cancel_waitable_timer(timer_handle: winnt::HANDLE) -> bool {
+//     unsafe { synchapi::CancelWaitableTimer(timer_handle) != minwindef::FALSE }
+// }
 
-// pub unsafe extern "system" fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR) -> HANDLE
-pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
-    unsafe {
-        synchapi::CreateEventW(ptr::null_mut(),
-                               to_winapi_bool(manual_reset),
-                               to_winapi_bool(initial_state),
-                               ptr::null())
-    }
-}
+// // pub unsafe extern "system" fn CreateEventW(lpEventAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR) -> HANDLE
+// pub fn create_event(manual_reset: bool, initial_state: bool) -> winnt::HANDLE {
+//     unsafe {
+//         synchapi::CreateEventW(ptr::null_mut(),
+//                                to_winapi_bool(manual_reset),
+//                                to_winapi_bool(initial_state),
+//                                ptr::null())
+//     }
+// }
 
-// pub unsafe extern "system" fn SetEvent(hEvent: HANDLE) -> BOOL
-pub fn set_event(event_handle: winnt::HANDLE) {
-    unsafe { synchapi::SetEvent(event_handle) };
-}
+// // pub unsafe extern "system" fn SetEvent(hEvent: HANDLE) -> BOOL
+// pub fn set_event(event_handle: winnt::HANDLE) {
+//     unsafe { synchapi::SetEvent(event_handle) };
+// }
 
-// pub unsafe extern "system" fn WaitForSingleObjectEx(hHandle: HANDLE, dwMilliseconds: DWORD, bAlertable: BOOL) -> DWORD
-pub fn wait_for_single_object_ex(handle: winnt::HANDLE, milliseconds: minwindef::DWORD) -> bool {
-    unsafe { synchapi::WaitForSingleObjectEx(handle, milliseconds, minwindef::TRUE) == winbase::WAIT_OBJECT_0 }
-}
+// // pub unsafe extern "system" fn WaitForSingleObjectEx(hHandle: HANDLE, dwMilliseconds: DWORD, bAlertable: BOOL) -> DWORD
+// pub fn wait_for_single_object_ex(handle: winnt::HANDLE, milliseconds: minwindef::DWORD) -> bool {
+//     unsafe { synchapi::WaitForSingleObjectEx(handle, milliseconds, minwindef::TRUE) == winbase::WAIT_OBJECT_0 }
+// }
 
 // pub unsafe extern "system" fn CreateMutexW(lpMutexAttributes: LPSECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR) -> HANDLE
 pub fn create_mutex(initial_owner: bool, name: &str) -> winnt::HANDLE {
@@ -367,4 +366,14 @@ pub fn get_local_time() -> minwinbase::SYSTEMTIME {
 pub fn output_timestamp() {
     let now = get_local_time();
     print!("{}:{}:{} - ", now.wHour, now.wMinute, now.wSecond);
+}
+
+// pub unsafe extern "system" fn SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC) -> UINT_PTR
+pub fn set_timer(hwnd: windef::HWND, id: u32, elaps: minwindef::UINT) {
+    unsafe { winuser::SetTimer(hwnd, id as basetsd::UINT_PTR, elaps, None); }
+}
+
+// pub unsafe extern "system" fn KillTimer(hWnd: HWND, uIDEvent: UINT_PTR) -> BOOL
+pub fn kill_timer(hwnd: windef::HWND, id: u32) {
+    unsafe { winuser::KillTimer(hwnd, id as basetsd::UINT_PTR); }
 }

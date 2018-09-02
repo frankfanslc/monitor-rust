@@ -14,10 +14,41 @@ use super::win32helper;
 use std::ptr;
 use std::mem;
 
+struct MyTimer {
+    hwnd: Option<windef::HWND>,
+    running: bool,
+    period_in_second: u32,
+    id: minwindef::UINT,
+}
+
+impl MyTimer {
+    pub fn start(&mut self) {
+        win32helper::set_timer(self.hwnd.unwrap(), self.id, self.period_in_second * 1000);
+        self.running = true;
+    }
+
+    pub fn stop(&mut self) {
+        win32helper::kill_timer(self.hwnd.unwrap(), self.id);
+        self.running = false;
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+}
+
+pub struct MainFrame {
+    hwnd: Option<windef::HWND>,
+    timer: MyTimer,
+}
+
 impl win32helper::WindowTrait for MainFrame {
 
     fn wnd_proc(&mut self, hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
         match msg {
+            winuser::WM_TIMER => {
+                get_foreground_app();
+            }
             winuser::WM_POWERBROADCAST => {
                 if wparam == win32helper::PBT_POWERSETTINGCHANGE && lparam != 0 {
                     let setting: &win32helper::POWERBROADCAST_SETTING = unsafe { mem::transmute(lparam) };
@@ -36,34 +67,28 @@ impl win32helper::WindowTrait for MainFrame {
     }
 }
 
-impl win32helper::TimerTrait for MyTimer {
-    fn timer_func(&mut self) {
-        get_foreground_app();
-    }
-}
-
-pub struct MyTimer {
-
-}
-
-pub struct MainFrame {
-    timer: win32helper::PeriodicTimer<MyTimer>,
-}
-
-
 impl MainFrame {
 
     pub fn new() -> Self {
 
-        let timer = MyTimer {};
-        let timer = win32helper::PeriodicTimer::<MyTimer>::new(CHECK_INTERNVAL_IN_SECONDS, timer);
+        let timer = MyTimer {
+            hwnd: None,
+            running: false,
+            period_in_second: CHECK_INTERNVAL_IN_SECONDS,
+            id: 1, // non-zero
+        };
+
         let mut frame = MainFrame {
+            hwnd: None,
             timer: timer,
         };
 
         let hwnd = frame.create_window();
+        frame.hwnd = Some(hwnd);
+        frame.timer.hwnd = Some(hwnd);
+
         frame.register_notification(hwnd);
-        frame.timer.start_wait();
+        frame.timer.start();
 
         frame
     }
@@ -78,10 +103,9 @@ impl MainFrame {
                                              (self,
                                               class_name,
                                               window_name,
-                                              winuser::WS_OVERLAPPEDWINDOW | winuser::WS_VISIBLE,
+                                              winuser::WS_OVERLAPPEDWINDOW, // | winuser::WS_VISIBLE,
                                               instance_handle,
                                               wnd_extra);
-
         hwnd
     }
 
