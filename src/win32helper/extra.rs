@@ -5,6 +5,7 @@ use self::winapi::{
 };
 
 use std::mem;
+use std::process::Command;
 use std::ptr;
 
 use super::ntdll;
@@ -245,4 +246,31 @@ where
             window as *mut W as minwindef::LPVOID,
         ) // Passed to WM_NCCREATE as CREATESTRUCT.lpCreateParams
     }
+}
+
+pub fn get_local_ip() -> String {
+    //
+    // parse output from "netsh.exe interface ipv4 show addresses"
+    //
+    //     DHCP enabled:    Yes
+    //     IP Address:      192.168.1.100
+    //
+    let output = Command::new("netsh")
+        .args("interface ipv4 show addresses".split(" "))
+        .output()
+        .expect("failed to execute netsh");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    let lines: Vec<&str> = stdout.split("\r\n").collect();
+    let mut found_dhcp = false;
+    for line in lines {
+        if found_dhcp && line.contains("IP Address") {
+            let parts: Vec<&str> = line.split(":").collect();
+            return parts[1].trim_left().to_string();
+        }
+        if line.contains("DHCP enabled") && line.contains("Yes") {
+            found_dhcp = true;
+        }
+    }
+    "".to_string()
 }

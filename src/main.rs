@@ -9,7 +9,6 @@ use self::mainframe::*;
 
 use std::io::prelude::*;
 use std::net;
-use std::process::Command;
 use std::thread;
 
 pub const CHECK_INTERNVAL_IN_SECONDS: u32 = 10;
@@ -66,7 +65,7 @@ pub fn get_foreground_app() {
 
 fn start_web_server() {
     thread::spawn(|| {
-        let ip_address = get_local_ip();
+        let ip_address = win32helper::get_local_ip();
         println!("Listen on {}:{}", &ip_address, LISTENING_PORT);
         let listener = net::TcpListener::bind((ip_address.as_str(), LISTENING_PORT)).unwrap();
         for stream in listener.incoming() {
@@ -80,8 +79,11 @@ fn start_web_server() {
 
 fn handle_connection(mut stream: net::TcpStream) {
     let mut buffer = [0; 512];
-
     stream.read(&mut buffer).unwrap();
+    let get = b"GET / HTTP/1.1\r\n";
+    if !buffer.starts_with(get) {
+        return;
+    }
 
     let http_header = "HTTP/1.1 200 OK\r\n\r\n";
     let html_head = "<head><title>Status</title><style>body{font-size:50px}</style></head>";
@@ -93,34 +95,4 @@ fn handle_connection(mut stream: net::TcpStream) {
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();
-}
-
-pub fn get_local_ip() -> String {
-    //
-    // parse output from "netsh.exe interface ipv4 show addresses"
-    //
-    //     DHCP enabled:    Yes
-    //     IP Address:      192.168.1.100
-    //
-    let output = Command::new("netsh")
-        .arg("interface")
-        .arg("ipv4")
-        .arg("show")
-        .arg("addresses")
-        .output()
-        .expect("failed to execute netsh");
-    let stdout = String::from_utf8(output.stdout).unwrap();
-
-    let lines: Vec<&str> = stdout.split("\r\n").collect();
-    let mut found_dhcp = false;
-    for line in lines {
-        if found_dhcp && line.contains("IP Address") {
-            let parts: Vec<&str> = line.split(":").collect();
-            return parts[1].trim_left().to_string();
-        }
-        if line.contains("DHCP enabled") && line.contains("Yes") {
-            found_dhcp = true;
-        }
-    }
-    "".to_string()
 }
