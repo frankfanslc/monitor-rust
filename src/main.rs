@@ -2,15 +2,15 @@
 
 mod win32helper;
 
-mod mainframe;
 mod logger;
-use self::mainframe::*;
+mod mainframe;
 use self::logger::*;
+use self::mainframe::*;
 
 use std::io::prelude::*;
 use std::net;
-use std::thread;
 use std::process::Command;
+use std::thread;
 
 pub const CHECK_INTERNVAL_IN_SECONDS: u32 = 10;
 pub const FLUSH_INTERVAL_IN_MINUTES: u32 = 15;
@@ -73,7 +73,7 @@ fn start_web_server() {
             match stream {
                 Ok(t) => handle_connection(t),
                 Err(_) => return,
-            }            
+            }
         }
     });
 }
@@ -86,7 +86,10 @@ fn handle_connection(mut stream: net::TcpStream) {
     let http_header = "HTTP/1.1 200 OK\r\n\r\n";
     let html_head = "<head><title>Status</title><style>body{font-size:50px}</style></head>";
     let (window_title, command_line) = get_last_entry();
-    let response = format!("{}{}<p/>{}<p/>{}", http_header, html_head, window_title, command_line);
+    let response = format!(
+        "{}{}<p/>{}<p/>{}",
+        http_header, html_head, window_title, command_line
+    );
 
     stream.write(response.as_bytes()).unwrap();
     stream.flush().unwrap();

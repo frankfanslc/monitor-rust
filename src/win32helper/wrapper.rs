@@ -1,28 +1,27 @@
 extern crate winapi;
 
 use self::winapi::{
-        ctypes,
+    ctypes,
 
-        shared::basetsd,
-        shared::guiddef,
-        shared::minwindef,
-        shared::windef,
-        shared::winerror,
+    shared::basetsd,
+    shared::guiddef,
+    shared::minwindef,
+    shared::windef,
+    shared::winerror,
 
-        um::minwinbase,
-        um::winnt,
-        um::winuser,
-        um::wow64apiset,
-
-        // um::consoleapi,
-        um::errhandlingapi,
-        um::handleapi,
-        um::libloaderapi,
-        um::memoryapi,
-        um::processthreadsapi,
-        um::synchapi,
-        um::sysinfoapi,
-        };
+    // um::consoleapi,
+    um::errhandlingapi,
+    um::handleapi,
+    um::libloaderapi,
+    um::memoryapi,
+    um::minwinbase,
+    um::processthreadsapi,
+    um::synchapi,
+    um::sysinfoapi,
+    um::winnt,
+    um::winuser,
+    um::wow64apiset,
+};
 
 use std::mem;
 use std::ptr;
@@ -49,9 +48,11 @@ pub fn get_window_process_id(hwnd: windef::HWND) -> minwindef::DWORD {
 // pub unsafe extern "system" fn OpenProcess(dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) -> HANDLE
 pub fn open_process(process_id: minwindef::DWORD) -> winnt::HANDLE {
     unsafe {
-        processthreadsapi::OpenProcess(winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_VM_READ,
-                                       minwindef::FALSE,
-                                       process_id)
+        processthreadsapi::OpenProcess(
+            winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_VM_READ,
+            minwindef::FALSE,
+            process_id,
+        )
     }
 }
 
@@ -60,9 +61,11 @@ pub fn get_window_text(hwnd: windef::HWND) -> String {
     let max_char_count: usize = 300;
     let mut buffer: Vec<winnt::WCHAR> = Vec::with_capacity(max_char_count);
     unsafe {
-        let char_count = winuser::GetWindowTextW(hwnd,
-                                                buffer.as_mut_ptr() as winnt::LPWSTR,
-                                                max_char_count as ctypes::c_int) as usize;
+        let char_count = winuser::GetWindowTextW(
+            hwnd,
+            buffer.as_mut_ptr() as winnt::LPWSTR,
+            max_char_count as ctypes::c_int,
+        ) as usize;
         if char_count == 0 {
             return String::new();
         }
@@ -72,23 +75,36 @@ pub fn get_window_text(hwnd: windef::HWND) -> String {
 }
 
 // pub unsafe extern "system" fn ReadProcessMemory(hProcess: HANDLE, lpBaseAddress: LPCVOID, lpBuffer: LPVOID, nSize: SIZE_T, lpNumberOfBytesRead: *mut SIZE_T) -> BOOL
-pub fn read_process_memory_raw(process_handle: winnt::HANDLE, base_address: minwindef::LPCVOID, buffer: minwindef::LPVOID, size: usize) -> bool {
+pub fn read_process_memory_raw(
+    process_handle: winnt::HANDLE,
+    base_address: minwindef::LPCVOID,
+    buffer: minwindef::LPVOID,
+    size: usize,
+) -> bool {
     unsafe {
         let mut bytes_read: basetsd::SIZE_T = 0;
-        let result = memoryapi::ReadProcessMemory(process_handle,
-                                                 base_address,
-                                                 buffer as minwindef::LPVOID,
-                                                 size as basetsd::SIZE_T,
-                                                 &mut bytes_read);
+        let result = memoryapi::ReadProcessMemory(
+            process_handle,
+            base_address,
+            buffer as minwindef::LPVOID,
+            size as basetsd::SIZE_T,
+            &mut bytes_read,
+        );
         result != 0
     }
 }
 
-pub fn read_process_memory<T>(process_handle: winnt::HANDLE, base_address: minwindef::LPCVOID, buffer: *mut T) -> bool {
-    read_process_memory_raw(process_handle,
-                            base_address,
-                            buffer as minwindef::LPVOID,
-                            mem::size_of::<T>())
+pub fn read_process_memory<T>(
+    process_handle: winnt::HANDLE,
+    base_address: minwindef::LPCVOID,
+    buffer: *mut T,
+) -> bool {
+    read_process_memory_raw(
+        process_handle,
+        base_address,
+        buffer as minwindef::LPVOID,
+        mem::size_of::<T>(),
+    )
 }
 
 // pub unsafe extern "system" fn IsWow64Process(hProcess: HANDLE, Wow64Process: PBOOL) -> BOOL
@@ -114,7 +130,11 @@ pub fn close_handle(handle: winnt::HANDLE) {
 
 // type WNDENUMPROC = Option<unsafe  extern "system" fn(HWND, LPARAM) -> BOOL>;
 // pub unsafe extern "system" fn EnumChildWindows(hwndParent: HWND, lpEnumFunc: WNDENUMPROC, lpParam: LPARAM) -> BOOL
-pub fn enum_child_windows(parent_window: windef::HWND, callback: winuser::WNDENUMPROC, lparam: minwindef::LPARAM) -> bool {
+pub fn enum_child_windows(
+    parent_window: windef::HWND,
+    callback: winuser::WNDENUMPROC,
+    lparam: minwindef::LPARAM,
+) -> bool {
     unsafe { winuser::EnumChildWindows(parent_window, callback, lparam) != minwindef::FALSE }
 }
 
@@ -132,7 +152,11 @@ pub fn get_window_extra(hwnd: windef::HWND, index: ctypes::c_int) -> basetsd::LO
     unsafe { winuser::GetWindowLongPtrW(hwnd, index) }
 }
 
-pub fn set_window_extra(hwnd: windef::HWND, index: ctypes::c_int, value: basetsd::LONG_PTR) -> basetsd::LONG_PTR {
+pub fn set_window_extra(
+    hwnd: windef::HWND,
+    index: ctypes::c_int,
+    value: basetsd::LONG_PTR,
+) -> basetsd::LONG_PTR {
     unsafe { winuser::SetWindowLongPtrW(hwnd, index, value) }
 }
 
@@ -177,7 +201,12 @@ pub fn post_quit_message(exit_code: ctypes::c_int) {
 }
 
 // pub unsafe extern "system" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT
-pub fn def_window_proc(hwnd: windef::HWND, msg: minwindef::UINT, wparam: minwindef::WPARAM, lparam: minwindef::LPARAM) -> minwindef::LRESULT {
+pub fn def_window_proc(
+    hwnd: windef::HWND,
+    msg: minwindef::UINT,
+    wparam: minwindef::WPARAM,
+    lparam: minwindef::LPARAM,
+) -> minwindef::LRESULT {
     unsafe { winuser::DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 
@@ -198,7 +227,11 @@ pub fn message_loop() {
 // }
 
 fn to_winapi_bool(x: bool) -> minwindef::BOOL {
-    if x { minwindef::TRUE } else { minwindef::FALSE }
+    if x {
+        minwindef::TRUE
+    } else {
+        minwindef::FALSE
+    }
 }
 
 // // pub unsafe extern "system" fn CreateWaitableTimerW(lpTimerAttributes: LPSECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR) -> HANDLE
@@ -255,9 +288,11 @@ fn to_winapi_bool(x: bool) -> minwindef::BOOL {
 pub fn create_mutex(initial_owner: bool, name: &str) -> winnt::HANDLE {
     let name_vec = to_wide_chars(name);
     unsafe {
-        synchapi::CreateMutexW(ptr::null_mut(),
-                               to_winapi_bool(initial_owner),
-                               name_vec.as_ptr())
+        synchapi::CreateMutexW(
+            ptr::null_mut(),
+            to_winapi_bool(initial_owner),
+            name_vec.as_ptr(),
+        )
     }
 }
 
@@ -325,10 +360,18 @@ pub type HPOWERNOTIFY = winnt::HANDLE;
 #[allow(non_snake_case)]
 #[link(name = "user32")]
 extern "system" {
-    pub fn RegisterPowerSettingNotification(hRecipient: winnt::HANDLE, PowerSettingGuid: &guiddef::GUID, Flags: minwindef::DWORD) -> HPOWERNOTIFY;
+    pub fn RegisterPowerSettingNotification(
+        hRecipient: winnt::HANDLE,
+        PowerSettingGuid: &guiddef::GUID,
+        Flags: minwindef::DWORD,
+    ) -> HPOWERNOTIFY;
 }
 
-pub fn register_power_setting_notification(recipient: winnt::HANDLE, setting: &guiddef::GUID, flags: minwindef::DWORD) -> HPOWERNOTIFY {
+pub fn register_power_setting_notification(
+    recipient: winnt::HANDLE,
+    setting: &guiddef::GUID,
+    flags: minwindef::DWORD,
+) -> HPOWERNOTIFY {
     unsafe { RegisterPowerSettingNotification(recipient, setting, flags) }
 }
 
@@ -343,7 +386,10 @@ pub const DEVICE_NOTIFY_WINDOW_HANDLE: minwindef::DWORD = 0;
 #[allow(non_snake_case)]
 #[link(name = "wtsapi32")]
 extern "system" {
-    pub fn WTSRegisterSessionNotification(hWnd: windef::HWND, dwFlags: minwindef::DWORD) -> minwindef::BOOL;
+    pub fn WTSRegisterSessionNotification(
+        hWnd: windef::HWND,
+        dwFlags: minwindef::DWORD,
+    ) -> minwindef::BOOL;
 }
 
 pub fn wts_register_session_notification(hwnd: windef::HWND, flags: minwindef::DWORD) -> bool {
@@ -370,10 +416,14 @@ pub fn output_timestamp() {
 
 // pub unsafe extern "system" fn SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC) -> UINT_PTR
 pub fn set_timer(hwnd: windef::HWND, id: u32, elaps: minwindef::UINT) {
-    unsafe { winuser::SetTimer(hwnd, id as basetsd::UINT_PTR, elaps, None); }
+    unsafe {
+        winuser::SetTimer(hwnd, id as basetsd::UINT_PTR, elaps, None);
+    }
 }
 
 // pub unsafe extern "system" fn KillTimer(hWnd: HWND, uIDEvent: UINT_PTR) -> BOOL
 pub fn kill_timer(hwnd: windef::HWND, id: u32) {
-    unsafe { winuser::KillTimer(hwnd, id as basetsd::UINT_PTR); }
+    unsafe {
+        winuser::KillTimer(hwnd, id as basetsd::UINT_PTR);
+    }
 }

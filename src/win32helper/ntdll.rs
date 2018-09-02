@@ -2,11 +2,7 @@
 
 extern crate winapi;
 
-use self::winapi::{
-        shared::minwindef,
-        shared::basetsd,
-        shared::ntdef,
-        um::winnt};
+use self::winapi::{shared::basetsd, shared::minwindef, shared::ntdef, um::winnt};
 
 use std::mem;
 
@@ -30,24 +26,31 @@ pub enum PROCESSINFOCLASS {
 
 #[link(name = "ntdll")]
 extern "system" {
-    pub fn NtQueryInformationProcess(ProcessHandle: winnt::HANDLE,
-                                     ProcessInformationClass: PROCESSINFOCLASS,
-                                     ProcessInformation: winnt::PVOID,
-                                     ProcessInformationLength: minwindef::ULONG,
-                                     ReturnLength: &mut minwindef::ULONG)
-                                     -> ntdef::NTSTATUS;
+    pub fn NtQueryInformationProcess(
+        ProcessHandle: winnt::HANDLE,
+        ProcessInformationClass: PROCESSINFOCLASS,
+        ProcessInformation: winnt::PVOID,
+        ProcessInformationLength: minwindef::ULONG,
+        ReturnLength: &mut minwindef::ULONG,
+    ) -> ntdef::NTSTATUS;
 }
 
 // pub unsafe extern "system" fn NtQueryInformationProcess(ProcessHandle: HANDLE, ProcessInformationClass: PROCESSINFOCLASS,
 //      ProcessInformation: PVOID, ProcessInformationLength: ULONG, ReturnLength: &mut ULONG) -> NTSTATUS;
-pub fn nt_query_information_process<T>(process_handle: winnt::HANDLE, information_class: PROCESSINFOCLASS, buffer: *mut T) -> bool {
+pub fn nt_query_information_process<T>(
+    process_handle: winnt::HANDLE,
+    information_class: PROCESSINFOCLASS,
+    buffer: *mut T,
+) -> bool {
     let mut return_length: minwindef::ULONG = 0;
     unsafe {
-        let status = NtQueryInformationProcess(process_handle,
-                                               information_class,
-                                               buffer as minwindef::LPVOID,
-                                               mem::size_of::<T>() as minwindef::ULONG,
-                                               &mut return_length);
+        let status = NtQueryInformationProcess(
+            process_handle,
+            information_class,
+            buffer as minwindef::LPVOID,
+            mem::size_of::<T>() as minwindef::ULONG,
+            &mut return_length,
+        );
         NT_SUCCESS(status)
     }
 }

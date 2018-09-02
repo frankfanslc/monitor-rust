@@ -1,4 +1,3 @@
-
 pub trait Log {
     fn log(&self, window_title: String, command_line: String);
     fn get_last_entry(&self) -> (String, String);
@@ -15,7 +14,8 @@ pub fn get_last_entry() -> (String, String) {
 }
 
 pub fn set_logger<M>(make_logger: M)
-    where M: FnOnce() -> Box<Log>
+where
+    M: FnOnce() -> Box<Log>,
 {
     unsafe {
         LOGGER = mem::transmute(make_logger());
@@ -36,9 +36,7 @@ impl Log for NopLogger {
 
 extern crate winapi;
 
-use self::winapi::{
-        um::winnt,
-        um::minwinbase};
+use self::winapi::{um::minwinbase, um::winnt};
 
 use super::win32helper;
 use std::fs::File;
@@ -78,7 +76,6 @@ impl Log for Logger {
 
 impl Logger {
     pub fn new(interval_in_seconds: u32, flush_interval_in_minutes: u32) -> Logger {
-
         use std::env;
         use std::fs::OpenOptions;
         use std::os::windows::fs::OpenOptionsExt;
@@ -124,7 +121,9 @@ impl Logger {
             self.last_entry = entry;
             return;
         }
-        if self.last_entry.window_title == window_title && self.last_entry.command_line == command_line {
+        if self.last_entry.window_title == window_title
+            && self.last_entry.command_line == command_line
+        {
             self.last_entry.duration_in_seconds += self.interval_in_seconds;
             return;
         }
@@ -132,7 +131,10 @@ impl Logger {
     }
 
     pub fn get_last_entry(&self) -> (String, String) {
-        (self.last_entry.window_title.clone(), self.last_entry.command_line.clone())
+        (
+            self.last_entry.window_title.clone(),
+            self.last_entry.command_line.clone(),
+        )
     }
 
     fn flush(&mut self) {
@@ -148,18 +150,19 @@ impl Logger {
 
         for entry in &self.entries {
             let now = entry.timestamp;
-            writeln!(self.file,
-                     "{}-{}-{} {}:{}:{}, {}, {}, {}",
-                     now.wYear,
-                     now.wMonth,
-                     now.wDay,
-                     now.wHour,
-                     now.wMinute,
-                     now.wSecond,
-                     entry.duration_in_seconds,
-                     entry.command_line,
-                     entry.window_title)
-                .unwrap();
+            writeln!(
+                self.file,
+                "{}-{}-{} {}:{}:{}, {}, {}, {}",
+                now.wYear,
+                now.wMonth,
+                now.wDay,
+                now.wHour,
+                now.wMinute,
+                now.wSecond,
+                entry.duration_in_seconds,
+                entry.command_line,
+                entry.window_title
+            ).unwrap();
         }
 
         self.entries.clear();
